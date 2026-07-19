@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 01
 current_phase_name: foundation-first-signal-github-scored-and-visible
 status: executing
-stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-07-19T21:44:46.066Z"
+stopped_at: Completed 01-04-PLAN.md
+last_updated: "2026-07-19T22:07:49.526Z"
 last_activity: 2026-07-19
 last_activity_desc: Phase 01 execution resumed (wave continue)
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 6
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 ## Current Position
 
 Phase: 01 (foundation-first-signal-github-scored-and-visible) — EXECUTING
-Plan: 4 of 6
+Plan: 5 of 6
 Status: Ready to execute
 Last activity: 2026-07-19 — Phase 01 execution resumed (wave continue)
 
-Progress: [█████░░░░░] 50%
+Progress: [███████░░░] 67%
 
 ## Performance Metrics
 
@@ -61,6 +61,7 @@ Progress: [█████░░░░░] 50%
 | Phase 01 P01 | 45min | 3 tasks | 18 files |
 | Phase 01 P02 | 55min | 3 tasks | 9 files |
 | Phase 01 P03 | 70min | 3 tasks | 15 files |
+| Phase 01 P04 | 25min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,8 @@ Recent decisions affecting current work:
 - [Phase ?]: hishel 1.3.0 constructor shape (SyncCacheTransport/SyncSqliteStorage) verified directly via inspect.signature() against the installed version, correcting RESEARCH.md's unverified Assumption A3
 - [Phase ?]: docs_url/docs_url_kind resolved and re-written on every resolve_entity() call (D-15) so a repo that later gains a homepage improves its link on the next run
 - [Phase ?]: run_manifest records three distinct statuses (success/zero_items/failed) so a silently-dead collector is never conflated with a healthy run (HEALTH-01, Pitfall 1)
+- [Phase ?]: compute_window_gain() anchors its trailing window on an entity's own latest snapshot date rather than wall-clock time, keeping rescore_all a pure function of (entities, snapshots) with no hidden time dependency
+- [Phase ?]: scores rows are written for every non-dormant entity (eligible flag 0/1); the ranked list is a query-time filter, not a write-time exclusion
 
 ### Pending Todos
 
@@ -100,6 +103,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-19T21:44:46.051Z
-Stopped at: Completed 01-03-PLAN.md
+Last session: 2026-07-19T22:07:49.505Z
+Stopped at: Completed 01-04-PLAN.md
 Resume file: None

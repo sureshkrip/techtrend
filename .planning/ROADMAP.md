@@ -36,7 +36,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. The dashboard shows when data was last successfully refreshed, and if GitHub collection fails or returns no items, that failure is visibly flagged instead of the section silently going stale.
   5. Re-running a partially-failed daily collection does not create duplicate entities or duplicate historical snapshots.
 
-**Plans**: 3/6 plans executed
+**Plans**: 4/6 plans executed
 
 Plans:
 **Wave 1**
@@ -53,7 +53,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 01-04-PLAN.md — Wilson-bounded velocity scoring with absolute floor, normalization seam, stability metric
+- [x] 01-04-PLAN.md — Wilson-bounded velocity scoring with absolute floor, normalization seam, stability metric
 - [ ] 01-05-PLAN.md — Sampled stargazer backfill with hard request cap and honest degraded state (D-08a)
 
 **Wave 5** *(blocked on Wave 4 completion)*
@@ -113,7 +113,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|-----------------|--------|-----------|
-| 1. Foundation & First Signal | 3/6 | In Progress|  |
+| 1. Foundation & First Signal | 4/6 | In Progress|  |
 | 2. Cost-Gated LLM Enrichment | 0/TBD | Not started | - |
 | 3. Source Breadth | 0/TBD | Not started | - |
 | 4. Autonomous Daily Scheduling | 0/TBD | Not started | - |

@@ -29,11 +29,11 @@
 
 ### Scoring
 
-- [ ] **SCORE-01**: System ranks items by velocity over a multi-day window rather than by absolute counts
-- [ ] **SCORE-02**: System applies a confidence-bounded score (Wilson-style lower bound) so low-sample items cannot rank highly on percentage alone
-- [ ] **SCORE-03**: System applies an absolute minimum threshold per source, so trivially small items are excluded regardless of growth rate
-- [ ] **SCORE-04**: System normalizes scores across sources with differing scales so GitHub stars, HN points, and download counts are comparable in one ranking
-- [ ] **SCORE-05**: Ranking is stable enough day-to-day that the dashboard does not reshuffle completely between runs
+- [x] **SCORE-01**: System ranks items by velocity over a multi-day window rather than by absolute counts
+- [x] **SCORE-02**: System applies a confidence-bounded score (Wilson-style lower bound) so low-sample items cannot rank highly on percentage alone
+- [x] **SCORE-03**: System applies an absolute minimum threshold per source, so trivially small items are excluded regardless of growth rate
+- [x] **SCORE-04**: System normalizes scores across sources with differing scales so GitHub stars, HN points, and download counts are comparable in one ranking
+- [x] **SCORE-05**: Ranking is stable enough day-to-day that the dashboard does not reshuffle completely between runs
 
 ### LLM Enrichment
 
