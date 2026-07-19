@@ -11,6 +11,7 @@ import logging
 from datetime import datetime
 
 from techtrend.collectors.base import CollectedItem
+from techtrend.pipeline.docs_link import resolve_docs_url
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,10 @@ def resolve_entity(conn, item: CollectedItem, now: datetime) -> int | None:
     existing row rather than creating a second entity. `admitted_at` is set
     only on insert and is never touched on conflict -- first-admission time
     is history, not a running "last touched" timestamp.
+
+    Also resolves and writes `docs_url`/`docs_url_kind` via `resolve_docs_url`
+    (DASH-05, D-15) on every call, insert or update, so a repo that later
+    gains a homepage gets an improved link on the next run.
     """
     native_id = (item.source_native_id or "").strip()
     if not native_id:
@@ -35,20 +40,27 @@ def resolve_entity(conn, item: CollectedItem, now: datetime) -> int | None:
         )
         return None
 
+    docs_url, docs_url_kind = resolve_docs_url(
+        {"homepage": item.homepage, "html_url": item.url},
+        item.readme_text,
+    )
+
     now_iso = now.strftime("%Y-%m-%dT%H:%M:%SZ")
     conn.execute(
         """
         INSERT INTO entities (
             source, source_native_id, full_name, url, homepage,
-            discovery_method, admitted_at, last_seen_at
+            docs_url, docs_url_kind, discovery_method, admitted_at, last_seen_at
         ) VALUES (
             :source, :native_id, :full_name, :url, :homepage,
-            :discovery_method, :now, :now
+            :docs_url, :docs_url_kind, :discovery_method, :now, :now
         )
         ON CONFLICT(source, source_native_id) DO UPDATE SET
             full_name = excluded.full_name,
             url = excluded.url,
             homepage = excluded.homepage,
+            docs_url = excluded.docs_url,
+            docs_url_kind = excluded.docs_url_kind,
             last_seen_at = excluded.last_seen_at
         """,
         {
@@ -57,6 +69,8 @@ def resolve_entity(conn, item: CollectedItem, now: datetime) -> int | None:
             "full_name": item.full_name,
             "url": item.url,
             "homepage": item.homepage,
+            "docs_url": docs_url,
+            "docs_url_kind": docs_url_kind,
             "discovery_method": item.discovery_method,
             "now": now_iso,
         },
