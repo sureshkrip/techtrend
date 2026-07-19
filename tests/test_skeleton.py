@@ -16,7 +16,17 @@ from techtrend.ingest import main as ingest_main
 
 
 def _seed_one_entity(db_path):
-    """Insert one entity + snapshot directly (bypasses ingest) for dashboard tests."""
+    """Insert one entity + an eligible scores row directly (bypasses
+    ingest/score) for dashboard tests.
+
+    As of plan 01-06, `query_ranked` joins on `scores.eligible = 1 AND
+    scores.score_version = CURRENT_SCORE_VERSION` (the score_version/eligible
+    defect fix flagged in 01-04-SUMMARY.md) -- an entity with no `scores` row
+    no longer renders on the dashboard at all, so this fixture must seed one
+    directly rather than relying on the entities row alone.
+    """
+    from techtrend.pipeline.score import CURRENT_SCORE_VERSION
+
     conn = connect(db_path)
     init_db(conn)
     conn.execute(
@@ -29,6 +39,18 @@ def _seed_one_entity(db_path):
             'https://aider.chat', 'seed', '2026-07-19T00:00:00Z', '2026-07-19T00:00:00Z'
         )
         """
+    )
+    entity_id = conn.execute(
+        "SELECT id FROM entities WHERE source = 'github' AND source_native_id = '741883704'"
+    ).fetchone()["id"]
+    conn.execute(
+        """
+        INSERT INTO scores (
+            entity_id, run_date, score_version, stars_gained,
+            window_days, wilson_lower_bound, eligible
+        ) VALUES (:entity_id, '2026-07-19', :score_version, 100, 7, 0.5, 1)
+        """,
+        {"entity_id": entity_id, "score_version": CURRENT_SCORE_VERSION},
     )
     conn.commit()
     conn.close()

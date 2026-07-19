@@ -7,6 +7,7 @@ dashboard is strictly read-only (D-17).
 """
 
 import sqlite3
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Request
@@ -14,8 +15,10 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from techtrend.config import load_config
 from techtrend.db.connection import connect
-from techtrend.server.queries import query_latest_run, query_ranked
+from techtrend.server.health import health_status
+from techtrend.server.queries import query_partial_history_count, query_ranked
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 TEMPLATES_DIR = WEB_DIR / "templates"
@@ -47,11 +50,16 @@ def dashboard(
 ) -> HTMLResponse:
     db_error = None
     rows: list[sqlite3.Row] = []
-    latest_run = None
+    applied_sort = sort
+    partial_history_count = 0
+    health = None
+
+    config = load_config()
 
     try:
-        rows = query_ranked(conn, sort=sort)
-        latest_run = query_latest_run(conn)
+        rows, applied_sort = query_ranked(conn, sort=sort)
+        partial_history_count = query_partial_history_count(conn, config.tunables.window_days)
+        health = health_status(conn, config, datetime.now(UTC))
     except sqlite3.Error:
         db_error = DB_UNREADABLE_MESSAGE
 
@@ -61,8 +69,9 @@ def dashboard(
         template_name,
         {
             "rows": rows,
-            "sort": sort,
-            "latest_run": latest_run,
+            "sort": applied_sort,
+            "partial_history_count": partial_history_count,
+            "health": health,
             "db_error": db_error,
         },
     )
