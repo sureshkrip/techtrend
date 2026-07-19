@@ -1,1 +1,14 @@
 .planning/research/.cache/
+
+# TechTrend
+.env
+techtrend.db
+techtrend.db-wal
+techtrend.db-shm
+logs/
+.pytest_cache/
+__pycache__/
+*.pyc
+.venv/
+.hishel/
+*.egg-info/

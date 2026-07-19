@@ -1,0 +1,75 @@
+# TechTrend tracked-repo config.
+# Hand-edited, git-tracked, non-secret. Every tunable read from this file must
+# flow through techtrend.config — never re-declared as a literal in application code.
+
+[seed]
+# Repos the owner already cares about (PROJECT.md / CONTEXT.md D-01, "Specific Ideas").
+# Snapshotted daily regardless of search-discovery results (D-02 sticky tracking).
+repos = [
+    "anthropics/claude-code",
+    "Aider-AI/aider",
+    "langchain-ai/langgraph",
+    "ollama/ollama",
+    "ggml-org/llama.cpp",
+    "guardrails-ai/guardrails",
+]
+
+[discovery]
+# Deterministic relevance filtering for GitHub-search-discovered repos (D-03).
+# Admit a search hit if it carries any topic from this allowlist...
+topics = [
+    "llm",
+    "ai-agents",
+    "mcp",
+    "rag",
+    "agentic",
+    "code-generation",
+    "llmops",
+    "ai-coding",
+]
+# ...OR if its name/description matches a keyword here. This fallback exists
+# specifically to catch brand-new repos that have not tagged themselves yet.
+keywords = [
+    "llm",
+    "large language model",
+    "agentic",
+    "ai agent",
+    "copilot",
+    "rag",
+    "retrieval augmented",
+    "mcp server",
+    "model context protocol",
+    "prompt engineering",
+    "ai coding",
+]
+
+[overrides]
+# Escape hatch (D-04). Force-include pins a repo regardless of topic/keyword
+# match; force-exclude permanently banishes a repo from tracking and discovery.
+# Curation happens here, never in the dashboard UI.
+force_include = []
+force_exclude = []
+
+[tunables]
+# 7-day trailing window for velocity computation (D-09) — cancels weekday
+# seasonality without an explicit normalization step.
+window_days = 7
+# SCORE-03 absolute floor: minimum stars gained within the window to be
+# eligible to rank at all, regardless of size or percentage growth (D-10).
+window_gain_floor = 25
+# Days of no meaningful star movement before a repo is marked dormant and
+# stops being polled (history retained; can wake back up) (D-02).
+dormancy_days = 90
+# Hard per-repo cap on stargazer-pagination requests during backfill, to
+# bound rate-limit usage (D-06).
+backfill_request_cap = 20
+# Health header strip escalates to a warning banner when the last successful
+# run is older than this many hours (D-16, HEALTH-02).
+staleness_hours = 36
+# Size of the top-N set used to compute the day-to-day Jaccard rank-overlap
+# stability metric (D-12, SCORE-05).
+stability_top_n = 25
+# Trailing runs averaged for the D-16 zero-items floor check — a run
+# returning zero items against a non-trivial trailing average escalates
+# the health banner (Pitfall #1).
+zero_items_trailing_runs = 5
