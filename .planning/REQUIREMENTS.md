@@ -13,19 +13,19 @@
 - [x] **DATA-02**: System stores metric observations as append-only timestamped snapshots, so velocity is computable as a delta over a time window
 - [x] **DATA-03**: System stores derived scores separately from snapshots, keyed to a score version, so re-scoring never requires re-ingesting
 - [ ] **DATA-04**: System stores LLM enrichments cached by entity and content hash, so re-ingesting never triggers re-summarizing the same content
-- [ ] **DATA-05**: A partially failed daily run can be re-run safely without creating duplicate snapshots or duplicate entities
+- [x] **DATA-05**: A partially failed daily run can be re-run safely without creating duplicate snapshots or duplicate entities
 
 ### Collection
 
-- [ ] **COLL-01**: System collects repository star counts and release events from GitHub
+- [x] **COLL-01**: System collects repository star counts and release events from GitHub
 - [ ] **COLL-02**: System backfills GitHub historical star data on first run, so velocity ranking works on day one without waiting for snapshots to accumulate
 - [ ] **COLL-03**: System collects stories and points from the Hacker News Algolia API
 - [ ] **COLL-04**: System collects package download counts from npm and PyPI
 - [ ] **COLL-05**: System collects vendor release notes from configured RSS/Atom changelog feeds
-- [ ] **COLL-06**: Adding a new source requires implementing a collector interface and registering it — no changes to scoring, enrichment, or dashboard code
-- [ ] **COLL-07**: System authenticates to GitHub and respects documented rate limits, backing off rather than exhausting quota
-- [ ] **COLL-08**: System uses conditional requests (ETag / If-Modified-Since) so unchanged resources do not consume rate-limit quota
-- [ ] **COLL-09**: System resolves each collected item to an existing entity or creates a new one, so the same release arriving from two sources does not become two entities
+- [x] **COLL-06**: Adding a new source requires implementing a collector interface and registering it — no changes to scoring, enrichment, or dashboard code
+- [x] **COLL-07**: System authenticates to GitHub and respects documented rate limits, backing off rather than exhausting quota
+- [x] **COLL-08**: System uses conditional requests (ETag / If-Modified-Since) so unchanged resources do not consume rate-limit quota
+- [x] **COLL-09**: System resolves each collected item to an existing entity or creates a new one, so the same release arriving from two sources does not become two entities
 
 ### Scoring
 
@@ -50,7 +50,7 @@
 - [ ] **DASH-02**: User can browse items filtered by section
 - [ ] **DASH-03**: User can sort items by velocity score
 - [x] **DASH-04**: User can click through from any item to its original source
-- [ ] **DASH-05**: User can reach the official docs / getting-started page for each tracked tool
+- [x] **DASH-05**: User can reach the official docs / getting-started page for each tracked tool
 - [ ] **DASH-06**: Dashboard displays when data was last successfully refreshed
 
 ### Scheduling

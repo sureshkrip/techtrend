@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 01
 current_phase_name: foundation-first-signal-github-scored-and-visible
 status: executing
-stopped_at: Completed 01-02-PLAN.md
-last_updated: "2026-07-19T19:19:14.896Z"
+stopped_at: Completed 01-03-PLAN.md
+last_updated: "2026-07-19T21:44:46.066Z"
 last_activity: 2026-07-19
 last_activity_desc: Phase 01 execution resumed (wave continue)
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 6
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 ## Current Position
 
 Phase: 01 (foundation-first-signal-github-scored-and-visible) — EXECUTING
-Plan: 3 of 6
+Plan: 4 of 6
 Status: Ready to execute
 Last activity: 2026-07-19 — Phase 01 execution resumed (wave continue)
 
-Progress: [███░░░░░░░] 33%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
@@ -60,6 +60,7 @@ Progress: [███░░░░░░░] 33%
 |------|----------|-------|-------|
 | Phase 01 P01 | 45min | 3 tasks | 18 files |
 | Phase 01 P02 | 55min | 3 tasks | 9 files |
+| Phase 01 P03 | 70min | 3 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,9 @@ Recent decisions affecting current work:
 - [Phase ?]: check_same_thread left at sqlite3 default True in connect() per RESEARCH.md concurrency guidance
 - [Phase ?]: Ran all Task 2/3 commands through the project's own .venv, not the global python interpreter, which lacked jinja2/hishel
 - [Phase ?]: get_conn() calls connect() only (not init_db()) so a missing/schema-less DB routes to the DB-unreadable error state, keeping it distinct from the zero-rows empty state
+- [Phase ?]: hishel 1.3.0 constructor shape (SyncCacheTransport/SyncSqliteStorage) verified directly via inspect.signature() against the installed version, correcting RESEARCH.md's unverified Assumption A3
+- [Phase ?]: docs_url/docs_url_kind resolved and re-written on every resolve_entity() call (D-15) so a repo that later gains a homepage improves its link on the next run
+- [Phase ?]: run_manifest records three distinct statuses (success/zero_items/failed) so a silently-dead collector is never conflated with a healthy run (HEALTH-01, Pitfall 1)
 
 ### Pending Todos
 
@@ -96,6 +100,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-19T19:19:14.844Z
-Stopped at: Completed 01-02-PLAN.md
+Last session: 2026-07-19T21:44:46.051Z
+Stopped at: Completed 01-03-PLAN.md
 Resume file: None
