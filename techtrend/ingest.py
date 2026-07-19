@@ -1,15 +1,15 @@
 """Ingest entry point: `python -m techtrend.ingest`.
 
-Run sequence: setup_logging() -> load_config() -> connect()+init_db() -> per
-source, upsert entities then snapshots -> commit once -> return 0.
+Default (no-flag) run sequence: setup_logging() -> load_config() ->
+connect()+init_db() -> run_collection() over the registered COLLECTORS,
+writing entities/snapshots/run_manifest through the source-agnostic pipeline
+-> return 0.
 
 The `--fixture` flag replays a recorded GitHub API response instead of making
-a live call. Live collection is deliberately NOT implemented here -- plan
-01-03 replaces the fixture branch with the real collector. The fixture branch
-remains afterwards as the offline development path.
+a live call and skips the orchestrator/run_manifest entirely -- it remains
+the offline development path proven in plan 01-02, unchanged by this plan.
 
-Does not write to `scores` (owned by plan 01-04) or `run_manifest` (owned by
-plan 01-03) -- the dashboard must tolerate both being empty.
+Does not write to `scores` (owned by plan 01-04).
 """
 
 import argparse
@@ -99,28 +99,43 @@ def main(argv: list[str] | None = None) -> int:
 
     load_config()
 
-    if args.fixture:
-        sources = _load_fixture_sources()
-    else:
-        logger.info(
-            "stage=collect:github items=0 note=live collection not implemented in this plan"
-        )
-        sources = []
-
     conn = connect()
     init_db(conn)
 
-    now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-    collected_at = datetime.now(UTC).strftime("%Y-%m-%d")
+    if args.fixture:
+        sources = _load_fixture_sources()
+        now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        collected_at = datetime.now(UTC).strftime("%Y-%m-%d")
 
-    for source_record in sources:
-        entity_id = _upsert_entity(conn, source_record, now)
-        _upsert_snapshot(conn, entity_id, source_record, collected_at)
+        for source_record in sources:
+            entity_id = _upsert_entity(conn, source_record, now)
+            _upsert_snapshot(conn, entity_id, source_record, collected_at)
 
-    conn.commit()
+        conn.commit()
+        conn.close()
+
+        logger.info("stage=collect:github items=%d", len(sources))
+        return 0
+
+    # Live path: run every registered collector through the source-agnostic
+    # pipeline. A collector failure (including a missing auth token) is
+    # caught inside run_collection and recorded as a 'failed' run_manifest
+    # row with a descriptive error_detail -- never a silent zero-item exit.
+    from techtrend.collectors.registry import COLLECTORS
+    from techtrend.pipeline.orchestrator import run_collection
+
+    run_date = datetime.now(UTC).date()
+    results = run_collection(conn, run_date, COLLECTORS)
     conn.close()
 
-    logger.info("stage=collect:github items=%d", len(sources))
+    for result in results:
+        logger.info(
+            "stage=%s status=%s items=%d%s",
+            result.stage,
+            result.status,
+            result.item_count,
+            f" error={result.error_detail}" if result.error_detail else "",
+        )
 
     return 0
 
