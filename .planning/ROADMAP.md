@@ -32,7 +32,15 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Every item links through to its GitHub source and to its documentation/getting-started page.
   4. The dashboard shows when data was last successfully refreshed, and if GitHub collection fails or returns no items, that failure is visibly flagged instead of the section silently going stale.
   5. Re-running a partially-failed daily collection does not create duplicate entities or duplicate historical snapshots.
-**Plans**: TBD
+**Plans**: 6 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Project scaffold, four-table SQLite schema, config surface, Wave 0 test harness
+- [ ] 01-02-PLAN.md — Walking Skeleton: fixture-backed ingest writes real rows, FastAPI dashboard renders them
+- [ ] 01-03-PLAN.md — Collector plugin seam, live GitHub collection, identity/snapshot pipeline, run health, docs links
+- [ ] 01-04-PLAN.md — Wilson-bounded velocity scoring with absolute floor, normalization seam, stability metric
+- [ ] 01-05-PLAN.md — Sampled stargazer backfill with hard request cap and honest degraded state (D-08a)
+- [ ] 01-06-PLAN.md — Dense sortable dashboard, honest link labels, escalating health strip
 **UI hint**: yes
 
 ### Phase 2: Cost-Gated LLM Enrichment
@@ -77,7 +85,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|-----------------|--------|-----------|
-| 1. Foundation & First Signal | 0/TBD | Not started | - |
+| 1. Foundation & First Signal | 0/6 | Planned | - |
 | 2. Cost-Gated LLM Enrichment | 0/TBD | Not started | - |
 | 3. Source Breadth | 0/TBD | Not started | - |
 | 4. Autonomous Daily Scheduling | 0/TBD | Not started | - |
