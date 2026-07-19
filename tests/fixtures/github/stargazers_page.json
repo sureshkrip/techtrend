@@ -1,0 +1,26 @@
+[
+  {
+    "starred_at": "2026-06-01T14:22:03Z",
+    "user": {
+      "login": "octocat-fan-1",
+      "id": 9001001,
+      "type": "User"
+    }
+  },
+  {
+    "starred_at": "2026-06-01T14:25:11Z",
+    "user": {
+      "login": "octocat-fan-2",
+      "id": 9001002,
+      "type": "User"
+    }
+  },
+  {
+    "starred_at": "2026-06-01T14:31:47Z",
+    "user": {
+      "login": "octocat-fan-3",
+      "id": 9001003,
+      "type": "User"
+    }
+  }
+]

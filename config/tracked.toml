@@ -63,6 +63,9 @@ dormancy_days = 90
 # Hard per-repo cap on stargazer-pagination requests during backfill, to
 # bound rate-limit usage (D-06).
 backfill_request_cap = 20
+# Days of historical star accrual to reconstruct during backfill, trimmed
+# from the newest sampled point backwards (D-06, ~90 days).
+backfill_lookback_days = 90
 # Health header strip escalates to a warning banner when the last successful
 # run is older than this many hours (D-16, HEALTH-02).
 staleness_hours = 36

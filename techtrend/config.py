@@ -36,6 +36,9 @@ class Tunables(BaseModel):
     dormancy_days: int = 90
     # Hard per-repo cap on stargazer-pagination requests during backfill (D-06).
     backfill_request_cap: int = 20
+    # Days of historical star accrual to reconstruct during backfill, trimmed
+    # from the newest sampled point backwards (D-06, ~90 days).
+    backfill_lookback_days: int = 90
     # Health header strip escalates when last successful run exceeds this age (D-16).
     staleness_hours: int = 36
     # Size of the top-N set for the day-to-day Jaccard rank-overlap stability metric (D-12).
