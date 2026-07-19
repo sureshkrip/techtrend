@@ -1,0 +1,17 @@
+{% for row in rows %}
+<tr>
+    <td class="col-rank{% if loop.index <= 3 %} rank-top{% endif %}">{{ loop.index }}</td>
+    <td class="col-name" title="{{ row['full_name'] }}">{{ row['full_name'] }}</td>
+    <td class="col-velocity">{{ '%.3f'|format(row['wilson_lower_bound']) if row['wilson_lower_bound'] is not none else '—' }}</td>
+    <td class="col-gained">{{ row['stars_gained'] if row['stars_gained'] is not none else '—' }}</td>
+    <td class="col-stars">{{ row['stars_total'] if row['stars_total'] is not none else '—' }}</td>
+    <td class="col-source"><a href="{{ row['url'] }}">View on GitHub</a></td>
+    <td class="col-docs">
+        {% if row['docs_url'] %}
+            <a href="{{ row['docs_url'] }}">{{ 'Docs' if row['docs_url_kind'] in ('homepage', 'readme') else 'Repo' }}</a>
+        {% else %}
+            <a href="{{ row['url'] }}">Repo</a>
+        {% endif %}
+    </td>
+</tr>
+{% endfor %}

@@ -1,0 +1,160 @@
+/* TechTrend dashboard styles.
+ * One hand-authored static file implementing the UI-SPEC token scale
+ * (.planning/phases/01-foundation-first-signal-github-scored-and-visible/01-UI-SPEC.md).
+ * No CSS framework, no preprocessor, no webfont fetch.
+ */
+
+:root {
+    /* Spacing scale (4px rungs) */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 32px;
+
+    /* Typography: exactly 4 sizes, exactly 2 weights (400 / 600) */
+    --font-body: 14px;
+    --font-label: 13px;
+    --font-heading: 20px;
+    --font-display: 28px;
+
+    /* Color: 60/30/10 dominant/secondary/accent + two semantic escalation tiers */
+    --color-dominant: #FFFFFF;
+    --color-secondary: #F1F3F5;
+    --color-accent: #2563EB;
+    --color-warning-fg: #92400E;
+    --color-warning-bg: #FEF3C7;
+    --color-critical-fg: #991B1B;
+    --color-critical-bg: #FEE2E2;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: var(--space-xl) var(--space-lg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: var(--font-body);
+    font-weight: 400;
+    line-height: 1.5;
+    color: #1A1A1A;
+    background-color: var(--color-dominant);
+}
+
+h1 {
+    font-size: var(--font-heading);
+    font-weight: 600;
+    line-height: 1.2;
+    margin: 0 0 var(--space-lg) 0;
+}
+
+h2 {
+    font-size: var(--font-heading);
+    font-weight: 600;
+    line-height: 1.2;
+    margin: 0 0 var(--space-sm) 0;
+}
+
+/* Health strip -- placeholder in this plan; plan 01-06 wires the D-16 tiers */
+.health-strip {
+    padding: var(--space-md);
+    margin-bottom: var(--space-lg);
+    background-color: var(--color-secondary);
+    font-size: var(--font-label);
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.health-strip--warning {
+    background-color: var(--color-warning-bg);
+    color: var(--color-warning-fg);
+}
+
+.health-strip--critical {
+    background-color: var(--color-critical-bg);
+    color: var(--color-critical-fg);
+}
+
+.health-strip--critical .health-strip__label {
+    font-size: var(--font-display);
+}
+
+/* Dense sortable table (D-14) */
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+thead {
+    background-color: var(--color-secondary);
+}
+
+th {
+    text-align: left;
+    font-size: var(--font-label);
+    font-weight: 600;
+    line-height: 1.4;
+    /* Table-cell exception: 8px vertical / 12px horizontal (sm + 4px), not the 16px default */
+    padding: var(--space-sm) 12px;
+}
+
+th a {
+    color: var(--color-accent);
+    text-decoration: none;
+}
+
+th a:hover {
+    text-decoration: underline;
+}
+
+td {
+    padding: var(--space-sm) 12px;
+    border-bottom: 1px solid var(--color-secondary);
+    font-size: var(--font-body);
+    font-weight: 400;
+}
+
+tbody tr:nth-child(even) {
+    background-color: var(--color-secondary);
+}
+
+.col-name {
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rank-top {
+    color: var(--color-accent);
+    font-weight: 600;
+}
+
+.col-source a,
+.col-docs a {
+    color: var(--color-accent);
+    text-decoration: none;
+}
+
+.col-source a:hover,
+.col-docs a:hover {
+    text-decoration: underline;
+}
+
+.empty-state {
+    padding: var(--space-xl) var(--space-lg);
+}
+
+.db-error {
+    padding: var(--space-md);
+    background-color: var(--color-critical-bg);
+    color: var(--color-critical-fg);
+}
+
+code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background-color: var(--color-secondary);
+    padding: 2px var(--space-xs);
+}
