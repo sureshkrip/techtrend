@@ -14,10 +14,10 @@ dependencies = [
     "python-dotenv==1.2.2",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
-    "pytest",
-    "ruff",
+    "pytest>=8",
+    "ruff>=0.9",
 ]
 
 [tool.ruff]
