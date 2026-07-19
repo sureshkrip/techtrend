@@ -1,7 +1,7 @@
 ---
 phase: 1
 slug: foundation-first-signal-github-scored-and-visible
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-07-19
@@ -111,22 +111,51 @@ Exactly 4 sizes, exactly 2 weights (400 regular / 600 semibold) — no italics, 
 > Empty-state and error-state COPY live in `## Copywriting Contract` above — this section covers
 > state coverage and REFERENCES those rows rather than restating the copy (de-dup).
 
-Applicable state considerations resolved: 5 covered, 4 backstop, 1 unresolved
+**Probe run (Step 9.5, post-verification):** 4 elements → 27 applicable considerations.
+**Resolved: 6 covered, 9 backstop, 11 dismissed (reason required), 1 unresolved.** All 27 are
+represented below — no silent drops.
+
+**Element kinds (user-confirmed at propose-then-confirm):** E1 ranked-table = `list-collection`;
+E2 health-strip = `nav`; E3 sort headers and E4 outbound links = `interactive-control` **only**.
+The engine's heuristic additionally classified E3/E4 as `list-collection`; that was confirmed as
+over-classification — both are children of E1, so their collection-shaped categories
+(`empty`/`populated`/`partial`/`zero-one-many`) are dismissed as *state owned by the parent table*
+rather than resolved as independent states.
 
 | Category | Element(s) | Status | Resolution / Reason |
 |----------|------------|--------|---------------------|
-| empty | ranked-table (list-collection) | ✅ covered | D-17 empty state — see Copywriting Contract "Empty state heading/body" rows |
-| loading | ranked-table (list-collection) | 🧪 backstop | htmx sort GET requests dim `#table-body` to ~0.5 opacity via `hx-indicator` during the partial swap; expected sub-200ms given a local SQLite dataset of tens-to-~100 rows, so no spinner is needed — held out as backstop since actual swap latency isn't measured yet |
-| error | ranked-table (list-collection) | 🧪 backstop | A DB read failure (missing/locked `techtrend.db`) renders the "Dashboard couldn't read the database" copy (see Copywriting Contract) instead of a raw 500 traceback — backstop until an actual DB-failure test exercises this path |
-| populated | ranked-table (list-collection) | ✅ covered | D-14's dense sortable table: rank, name, velocity score, stars gained in window, total stars, source link, docs link — one row per entity |
-| partial | ranked-table (list-collection) | ✅ covered | D-15 docs-link fallback chain (homepage → readme → repo, honestly labeled) + the partial-history footer note for entities with `window_days < 7` |
-| zero-one-many | ranked-table (list-collection) | ✅ covered | Footer note branches singular/plural — see Copywriting Contract "Partial-history footer note" |
-| overflow | ranked-table (list-collection) | ⚠ unresolved | No pagination or virtualization in Phase 1 — the table grows unbounded with the tracked set. Acceptable at tens-to-~100 rows for a personal single-user dashboard; treated here as a planner assumption, not a decided design, and should be revisited if the tracked set grows materially larger than that |
-| error | health-strip (nav) | ✅ covered | D-16's three-tier escalation (quiet grey normal / amber stale-warning / red failure) — copy in Copywriting Contract "Error state — stale" and "Error state — failure" rows |
-| overflow / long-text | health-strip (nav) | 🧪 backstop | `run_manifest.error_detail` is truncated to ~120 characters with a trailing ellipsis in the banner; the full detail is never rendered in the dashboard (stays in the log file only), avoiding a leaked stack trace onto a page that's otherwise plain-text-safe — backstop until a long-error-message case is exercised |
-| long-text | ranked-table name column (interactive-control) | 🧪 backstop | `full_name` (`owner/repo`) truncates via CSS `text-overflow: ellipsis` at a fixed max-width column, with the untruncated name available via the native `title` attribute on hover — backstop until an unusually long repo name is exercised |
+| empty | E1 ranked-table (list-collection) | ✅ covered | D-17 empty state — see Copywriting Contract "Empty state heading/body" rows |
+| loading | E1 ranked-table (list-collection) | 🧪 backstop | htmx sort GET requests dim `#table-body` to ~0.5 opacity via `hx-indicator` during the partial swap; expected sub-200ms given a local SQLite dataset of tens-to-~100 rows, so no spinner is needed — held out as backstop since actual swap latency isn't measured yet |
+| error | E1 ranked-table (list-collection) | 🧪 backstop | A DB read failure (missing/locked `techtrend.db`) renders the "Dashboard couldn't read the database" copy (see Copywriting Contract) instead of a raw 500 traceback — backstop until an actual DB-failure test exercises this path |
+| populated | E1 ranked-table (list-collection) | ✅ covered | D-14's dense sortable table: rank, name, velocity score, stars gained in window, total stars, source link, docs link — one row per entity |
+| partial | E1 ranked-table (list-collection) | ✅ covered | D-15 docs-link fallback chain (homepage → readme → repo, honestly labeled) + the partial-history footer note for entities with `window_days < 7` |
+| zero-one-many | E1 ranked-table (list-collection) | ✅ covered | Footer note branches singular/plural — see Copywriting Contract "Partial-history footer note" |
+| overflow | E1 ranked-table (list-collection) | ⚠ unresolved | No pagination or virtualization in Phase 1 — the table grows unbounded with the tracked set. Acceptable at tens-to-~100 rows for a personal single-user dashboard; treated here as a planner assumption, not a decided design, and should be revisited if the tracked set grows materially larger than that |
+| long-text | E1 ranked-table name column | 🧪 backstop | `full_name` (`owner/repo`) truncates via CSS `text-overflow: ellipsis` at a fixed max-width column, with the untruncated name available via the native `title` attribute on hover — backstop until an unusually long repo name is exercised |
+| error | E2 health-strip (nav) | ✅ covered | D-16's three-tier escalation (quiet grey normal / amber stale-warning / red failure) — copy in Copywriting Contract "Error state — stale" and "Error state — failure" rows |
+| overflow / long-text | E2 health-strip (nav) | 🧪 backstop | `run_manifest.error_detail` is truncated to ~120 characters with a trailing ellipsis in the banner; the full detail is never rendered in the dashboard (stays in the log file only), avoiding a leaked stack trace onto a page that's otherwise plain-text-safe — backstop until a long-error-message case is exercised |
+| loading | E2 health-strip (nav) | ✖ dismissed | The health strip renders synchronously as part of the full page response and is never the target of an htmx partial swap, so it has no loading state independent of initial page load. |
+| loading | E3 sort headers (interactive-control) | 🧪 backstop | During an in-flight sort GET the header link stays clickable and the active-direction glyph does not move until the swap lands, so a double-click cannot desync glyph from data — backstop until concurrent-click behaviour is exercised |
+| error | E3 sort headers (interactive-control) | 🧪 backstop | **Real gap, not a restatement of E1's error row.** When the htmx sort GET itself fails (5xx/network), htmx's default is to swap nothing — leaving the old table body visible under a header glyph that says it re-sorted. The sort control must surface that failure rather than silently no-op; `hx-on::response-error` (or an `HX-Retarget`ed error partial) is required. Backstop until a failed-sort-request test exercises it |
+| overflow | E3 sort headers (interactive-control) | 🧪 backstop | Header cells use the same fixed column widths as the body cells so the header row cannot reflow independently of the data rows and desync column alignment — backstop until rendered at the narrowest supported viewport |
+| long-text | E3 sort headers (interactive-control) | ✖ dismissed | Header labels are fixed authored strings ("Rank", "Repo", "Velocity", "Stars gained", "Stars", "Source", "Docs") — not data-driven, so no unbounded-length input reaches them. |
+| empty | E3 sort headers (interactive-control) | ✖ dismissed | State owned by parent E1 ranked-table — headers render identically whether the table has zero or many rows; the empty state is E1's. |
+| populated | E3 sort headers (interactive-control) | ✖ dismissed | State owned by parent E1 ranked-table — the header row has one fixed appearance, no volume-dependent variation. |
+| partial | E3 sort headers (interactive-control) | ✖ dismissed | State owned by parent E1 ranked-table — the header set is fixed at template-authoring time and never partially populated from data. |
+| zero-one-many | E3 sort headers (interactive-control) | ✖ dismissed | State owned by parent E1 ranked-table — a fixed count of headers, no singular/plural copy branch. |
+| partial | E4 outbound links (interactive-control) | ✅ covered | D-15's honesty labelling *is* this consideration: the label degrades with the fallback tier — "Docs" when `docs_url_kind` is `homepage`/`readme`, "Repo" when it fell back to the bare repository URL. See Copywriting Contract "Docs-link honesty label" |
+| error | E4 outbound links (interactive-control) | 🧪 backstop | A resolved docs URL can still be dead (404/moved) — the dashboard cannot verify an outbound target at render time and must not imply it did. The honest-labelling contract above is the mitigation; no link is presented as verified. Backstop until link-target validity is either checked or explicitly declared out of scope |
+| overflow | E4 outbound links (interactive-control) | 🧪 backstop | Both links share one fixed-width action column; labels must not wrap the row to a second line at the narrowest supported viewport — backstop until rendered |
+| empty | E4 outbound links (interactive-control) | ✖ dismissed | D-15's fallback chain terminates at the bare repository URL, which always exists for a GitHub-sourced entity — so neither link is ever absent and there is no empty state to design. |
+| loading | E4 outbound links (interactive-control) | ✖ dismissed | Plain `<a href>` anchors using native browser navigation — no async fetch, therefore no loading state. |
+| long-text | E4 outbound links (interactive-control) | ✖ dismissed | Link labels are fixed authored strings ("View on GitHub" / "Docs" / "Repo") — the variable-length URL lives in `href`, never in rendered text. |
+| populated | E4 outbound links (interactive-control) | ✖ dismissed | State owned by parent E1 ranked-table — exactly two links per row regardless of table volume. |
+| zero-one-many | E4 outbound links (interactive-control) | ✖ dismissed | State owned by parent E1 ranked-table — a fixed two links per row, no count-dependent copy branch. |
 
-**Not raised (dismissed, no reason needed beyond kind mismatch):** `loading`/`empty`/`populated`/`partial`/`zero-one-many` do not apply to the health-strip (kind `nav` — those categories only apply to `form`/`list-collection`/`media` per the taxonomy); the health strip itself renders synchronously with the full page response and is never the target of an htmx partial swap, so it has no independent loading state to resolve.
+**Planner note.** The single ⚠ unresolved row (E1 `overflow` — unbounded table growth) is an explicit
+assumption, not a decided design; it must be surfaced in the plan, not silently dropped. The E3 `error`
+backstop is the one probe-raised item that is a genuine behavioural gap rather than a held-out test:
+a failed htmx sort request must not leave stale rows under a moved sort glyph.
 
 ---
 
@@ -140,11 +169,16 @@ Applicable state considerations resolved: 5 covered, 4 backstop, 1 unresolved
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved (gsd-ui-checker, 6/6 dimensions, 0 recommendations)
+
+**Not user-confirmed:** the color hex values, the exact type scale, and the copy wording are
+researcher-authored defaults derived from the locked decisions (D-14 through D-17, D-08a) — the
+checker validated their internal consistency, not that they match a stated preference. Worth a
+human glance before execution; none of them block planning.
