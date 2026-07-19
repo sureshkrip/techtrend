@@ -93,8 +93,42 @@
 
 ## Traceability
 
-<!-- Filled by roadmap creation -->
-
 | Requirement | Phase |
 |-------------|-------|
-| _(pending roadmap)_ | — |
+| DATA-01 | Phase 1 |
+| DATA-02 | Phase 1 |
+| DATA-03 | Phase 1 |
+| DATA-04 | Phase 2 |
+| DATA-05 | Phase 1 |
+| COLL-01 | Phase 1 |
+| COLL-02 | Phase 1 |
+| COLL-03 | Phase 3 |
+| COLL-04 | Phase 3 |
+| COLL-05 | Phase 3 |
+| COLL-06 | Phase 1 |
+| COLL-07 | Phase 1 |
+| COLL-08 | Phase 1 |
+| COLL-09 | Phase 1 |
+| SCORE-01 | Phase 1 |
+| SCORE-02 | Phase 1 |
+| SCORE-03 | Phase 1 |
+| SCORE-04 | Phase 1 |
+| SCORE-05 | Phase 1 |
+| ENR-01 | Phase 2 |
+| ENR-02 | Phase 2 |
+| ENR-03 | Phase 2 |
+| ENR-04 | Phase 2 |
+| ENR-05 | Phase 2 |
+| ENR-06 | Phase 2 |
+| DASH-01 | Phase 1 |
+| DASH-02 | Phase 2 |
+| DASH-03 | Phase 1 |
+| DASH-04 | Phase 1 |
+| DASH-05 | Phase 1 |
+| DASH-06 | Phase 1 |
+| SCHED-01 | Phase 4 |
+| SCHED-02 | Phase 4 |
+| HEALTH-01 | Phase 1 |
+| HEALTH-02 | Phase 1 |
+
+**Coverage:** 35/35 v1 requirements mapped. No orphans.
