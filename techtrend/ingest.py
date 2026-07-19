@@ -3,11 +3,19 @@
 Default (no-flag) run sequence: setup_logging() -> load_config() ->
 connect()+init_db() -> run_collection() over the registered COLLECTORS,
 writing entities/snapshots/run_manifest through the source-agnostic pipeline
--> return 0.
+-> run_backfill() for any first-sight entity -> return 0.
 
 The `--fixture` flag replays a recorded GitHub API response instead of making
-a live call and skips the orchestrator/run_manifest entirely -- it remains
-the offline development path proven in plan 01-02, unchanged by this plan.
+a live call, skipping the collection orchestrator/run_manifest -- it remains
+the offline development path proven in plan 01-02. Both paths now also
+attempt backfill (D-08 triggers on first sight regardless of how an entity
+was collected).
+
+Backfill (D-08, D-08a) runs AFTER snapshots are written and inside its own
+exception guard: any failure there -- including a missing GITHUB_TOKEN, or
+every entity failing -- is caught, recorded as a 'failed' backfill:github
+run_manifest row, and never changes this function's exit code or touches
+observed snapshots already committed.
 
 Does not write to `scores` (owned by plan 01-04).
 """
@@ -84,6 +92,43 @@ def _upsert_snapshot(conn, entity_id: int, source_record: dict, collected_at: st
     )
 
 
+def _attempt_backfill(conn, config, run_date) -> None:
+    """Run the D-08 backfill stage after snapshots are committed, inside an
+    exception guard that can never propagate. `run_backfill()` already
+    catches per-entity failures internally; this guard additionally covers
+    catastrophic failures before/around that call -- e.g. a missing
+    GITHUB_TOKEN when building the backfill client -- so a run_manifest
+    'failed' row is still recorded and the ingest exit code is untouched
+    either way (D-08: backfill failure must never block current collection).
+    """
+    from techtrend.collectors.http import build_client
+    from techtrend.pipeline.backfill_runner import run_backfill
+
+    try:
+        client = build_client()
+        try:
+            run_backfill(conn, client, config, run_date)
+        finally:
+            client.close()
+    except Exception as exc:  # noqa: BLE001 - backfill must never block collection
+        logger.warning(
+            "stage=backfill:github status=failed error=%s "
+            "note=backfill stage skipped this run, observed snapshots unaffected",
+            exc,
+        )
+        from techtrend.pipeline.orchestrator import record_stage
+
+        record_stage(
+            conn,
+            run_date.isoformat(),
+            "backfill:github",
+            "failed",
+            item_count=0,
+            error_detail=str(exc),
+        )
+        conn.commit()
+
+
 def main(argv: list[str] | None = None) -> int:
     setup_logging()
 
@@ -97,7 +142,7 @@ def main(argv: list[str] | None = None) -> int:
 
     from techtrend.config import load_config
 
-    load_config()
+    config = load_config()
 
     conn = connect()
     init_db(conn)
@@ -112,9 +157,11 @@ def main(argv: list[str] | None = None) -> int:
             _upsert_snapshot(conn, entity_id, source_record, collected_at)
 
         conn.commit()
-        conn.close()
-
         logger.info("stage=collect:github items=%d", len(sources))
+
+        run_date = datetime.now(UTC).date()
+        _attempt_backfill(conn, config, run_date)
+        conn.close()
         return 0
 
     # Live path: run every registered collector through the source-agnostic
@@ -126,7 +173,6 @@ def main(argv: list[str] | None = None) -> int:
 
     run_date = datetime.now(UTC).date()
     results = run_collection(conn, run_date, COLLECTORS)
-    conn.close()
 
     for result in results:
         logger.info(
@@ -136,6 +182,11 @@ def main(argv: list[str] | None = None) -> int:
             result.item_count,
             f" error={result.error_detail}" if result.error_detail else "",
         )
+
+    # Ordering backfill after collection means a first-sight entity exists
+    # before its history is fetched (D-08).
+    _attempt_backfill(conn, config, run_date)
+    conn.close()
 
     return 0
 

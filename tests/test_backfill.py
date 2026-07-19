@@ -9,15 +9,21 @@ Task 2 covers `techtrend.collectors.backfill` in isolation. Task 3 covers
 snapshot writes, and honest per-repo status bookkeeping.
 """
 
+from datetime import date
+
 import httpx
 import pytest
 
+import techtrend.pipeline.backfill_runner as backfill_runner
 from techtrend.collectors.backfill import (
     BackfillBlocked,
     BackfillOutcome,
     BackfillTruncated,
     sample_stargazer_history,
 )
+from techtrend.config import load_config
+from techtrend.pipeline.backfill_runner import run_backfill
+from techtrend.pipeline.snapshot import write_snapshot
 
 # ---------------------------------------------------------------------------
 # Task 2: techtrend.collectors.backfill
@@ -160,3 +166,225 @@ def test_points_trimmed_to_lookback_days(github_fixture):
     result_dates = [d for d, _ in outcome.points]
     assert "2025-01-01" not in result_dates
     assert "2026-06-01" in result_dates
+
+
+# ---------------------------------------------------------------------------
+# Task 3: techtrend.pipeline.backfill_runner
+# ---------------------------------------------------------------------------
+
+
+def _insert_entity(conn, native_id: str, full_name: str, backfill_status: str) -> int:
+    now = "2026-07-19T00:00:00Z"
+    conn.execute(
+        """
+        INSERT INTO entities (
+            source, source_native_id, full_name, url, discovery_method,
+            admitted_at, last_seen_at, backfill_status
+        ) VALUES ('github', :native_id, :full_name, :url, 'seed', :now, :now, :status)
+        """,
+        {
+            "native_id": native_id,
+            "full_name": full_name,
+            "url": f"https://github.com/{full_name}",
+            "now": now,
+            "status": backfill_status,
+        },
+    )
+    row = conn.execute(
+        "SELECT id FROM entities WHERE source = 'github' AND source_native_id = ?",
+        (native_id,),
+    ).fetchone()
+    conn.commit()
+    return row["id"]
+
+
+@pytest.fixture
+def config():
+    return load_config()
+
+
+def test_pending_entity_attempted_complete_and_blocked_entities_skipped(db, config, monkeypatch):
+    conn = db
+    pending_id = _insert_entity(conn, "1", "octo/pending-repo", "pending")
+    complete_id = _insert_entity(conn, "2", "octo/complete-repo", "complete")
+    blocked_id = _insert_entity(conn, "3", "octo/blocked-repo", "blocked")
+    for entity_id in (pending_id, complete_id, blocked_id):
+        write_snapshot(conn, entity_id, "2026-07-19", "stars", 500, source_kind="observed")
+    conn.commit()
+
+    attempted: list[str] = []
+
+    def fake_sample(client, full_name, stars_total, request_cap, lookback_days):
+        attempted.append(full_name)
+        return BackfillOutcome(points=[("2026-07-01", 100)], requests_made=1)
+
+    monkeypatch.setattr(backfill_runner, "sample_stargazer_history", fake_sample)
+
+    run_backfill(conn, object(), config, date(2026, 7, 19))
+
+    assert attempted == ["octo/pending-repo"]
+
+
+def test_failed_and_truncated_entities_are_retried(db, config, monkeypatch):
+    conn = db
+    failed_id = _insert_entity(conn, "1", "octo/failed-repo", "failed")
+    truncated_id = _insert_entity(conn, "2", "octo/truncated-repo", "truncated")
+    for entity_id in (failed_id, truncated_id):
+        write_snapshot(conn, entity_id, "2026-07-19", "stars", 500, source_kind="observed")
+    conn.commit()
+
+    attempted: list[str] = []
+
+    def fake_sample(client, full_name, stars_total, request_cap, lookback_days):
+        attempted.append(full_name)
+        return BackfillOutcome(points=[("2026-07-01", 100)], requests_made=1)
+
+    monkeypatch.setattr(backfill_runner, "sample_stargazer_history", fake_sample)
+
+    run_backfill(conn, object(), config, date(2026, 7, 19))
+
+    assert set(attempted) == {"octo/failed-repo", "octo/truncated-repo"}
+
+
+def test_successful_backfill_writes_backfill_snapshots_and_status_complete(
+    db, config, monkeypatch
+):
+    conn = db
+    entity_id = _insert_entity(conn, "1", "octo/repo", "pending")
+    write_snapshot(conn, entity_id, "2026-07-19", "stars", 500, source_kind="observed")
+    conn.commit()
+
+    def fake_sample(client, full_name, stars_total, request_cap, lookback_days):
+        return BackfillOutcome(
+            points=[("2026-04-01", 100), ("2026-06-01", 300)], requests_made=2
+        )
+
+    monkeypatch.setattr(backfill_runner, "sample_stargazer_history", fake_sample)
+
+    run_backfill(conn, object(), config, date(2026, 7, 19))
+
+    rows = conn.execute(
+        "SELECT collected_at, metric_value, source_kind FROM snapshots "
+        "WHERE entity_id = ? AND source_kind = 'backfill' ORDER BY collected_at",
+        (entity_id,),
+    ).fetchall()
+    assert [dict(r) for r in rows] == [
+        {"collected_at": "2026-04-01", "metric_value": 100, "source_kind": "backfill"},
+        {"collected_at": "2026-06-01", "metric_value": 300, "source_kind": "backfill"},
+    ]
+
+    entity = conn.execute(
+        "SELECT backfill_status, backfilled_at FROM entities WHERE id = ?", (entity_id,)
+    ).fetchone()
+    assert entity["backfill_status"] == "complete"
+    assert entity["backfilled_at"] is not None
+
+
+def test_rerunning_backfill_does_not_duplicate_snapshot_rows(db, config, monkeypatch):
+    conn = db
+    entity_id = _insert_entity(conn, "1", "octo/repo", "pending")
+    write_snapshot(conn, entity_id, "2026-07-19", "stars", 500, source_kind="observed")
+    conn.commit()
+
+    def fake_sample(client, full_name, stars_total, request_cap, lookback_days):
+        return BackfillOutcome(points=[("2026-04-01", 100)], requests_made=1)
+
+    monkeypatch.setattr(backfill_runner, "sample_stargazer_history", fake_sample)
+
+    run_backfill(conn, object(), config, date(2026, 7, 19))
+    count_after_first = conn.execute("SELECT COUNT(*) AS n FROM snapshots").fetchone()["n"]
+
+    # D-08 only retries 'failed'/'truncated', not 'complete' -- reset the
+    # status to genuinely re-exercise write_snapshot()'s upsert idempotency
+    # with the same derived points, rather than trivially no-op-ing because
+    # the entity is skipped.
+    conn.execute("UPDATE entities SET backfill_status = 'pending' WHERE id = ?", (entity_id,))
+    conn.commit()
+
+    run_backfill(conn, object(), config, date(2026, 7, 19))
+    count_after_second = conn.execute("SELECT COUNT(*) AS n FROM snapshots").fetchone()["n"]
+
+    assert count_after_second == count_after_first
+
+
+def test_blocked_outcome_sets_status_blocked_and_writes_zero_snapshots(db, config, monkeypatch):
+    conn = db
+    entity_id = _insert_entity(conn, "1", "octo/repo", "pending")
+    write_snapshot(conn, entity_id, "2026-07-19", "stars", 500, source_kind="observed")
+    conn.commit()
+
+    def fake_sample(client, full_name, stars_total, request_cap, lookback_days):
+        raise BackfillBlocked(full_name, 403)
+
+    monkeypatch.setattr(backfill_runner, "sample_stargazer_history", fake_sample)
+
+    run_backfill(conn, object(), config, date(2026, 7, 19))
+
+    entity = conn.execute(
+        "SELECT backfill_status FROM entities WHERE id = ?", (entity_id,)
+    ).fetchone()
+    assert entity["backfill_status"] == "blocked"
+
+    n = conn.execute(
+        "SELECT COUNT(*) AS n FROM snapshots WHERE entity_id = ? AND source_kind = 'backfill'",
+        (entity_id,),
+    ).fetchone()["n"]
+    assert n == 0
+
+
+def test_backfill_raising_for_every_entity_does_not_abort_or_lose_observed_snapshots(
+    db, config, monkeypatch
+):
+    conn = db
+    entity_a = _insert_entity(conn, "1", "octo/repo-a", "pending")
+    entity_b = _insert_entity(conn, "2", "octo/repo-b", "pending")
+    write_snapshot(conn, entity_a, "2026-07-19", "stars", 500, source_kind="observed")
+    write_snapshot(conn, entity_b, "2026-07-19", "stars", 700, source_kind="observed")
+    conn.commit()
+
+    observed_before = conn.execute(
+        "SELECT COUNT(*) AS n FROM snapshots WHERE source_kind = 'observed'"
+    ).fetchone()["n"]
+
+    def fake_sample(client, full_name, stars_total, request_cap, lookback_days):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(backfill_runner, "sample_stargazer_history", fake_sample)
+
+    # Must not raise.
+    counts = run_backfill(conn, object(), config, date(2026, 7, 19))
+
+    observed_after = conn.execute(
+        "SELECT COUNT(*) AS n FROM snapshots WHERE source_kind = 'observed'"
+    ).fetchone()["n"]
+    assert observed_after == observed_before
+    assert counts["failed"] == 2
+    assert counts["completed"] == 0
+
+
+def test_run_manifest_row_records_completed_blocked_failed_counts(db, config, monkeypatch):
+    conn = db
+    complete_id = _insert_entity(conn, "1", "octo/complete-repo", "pending")
+    blocked_id = _insert_entity(conn, "2", "octo/blocked-repo", "pending")
+    write_snapshot(conn, complete_id, "2026-07-19", "stars", 500, source_kind="observed")
+    write_snapshot(conn, blocked_id, "2026-07-19", "stars", 500, source_kind="observed")
+    conn.commit()
+
+    def fake_sample(client, full_name, stars_total, request_cap, lookback_days):
+        if full_name == "octo/blocked-repo":
+            raise BackfillBlocked(full_name, 403)
+        return BackfillOutcome(points=[("2026-06-01", 10)], requests_made=1)
+
+    monkeypatch.setattr(backfill_runner, "sample_stargazer_history", fake_sample)
+
+    run_backfill(conn, object(), config, date(2026, 7, 19))
+
+    row = conn.execute(
+        "SELECT item_count, error_detail, status FROM run_manifest "
+        "WHERE run_date = ? AND stage = 'backfill:github'",
+        ("2026-07-19",),
+    ).fetchone()
+    assert row is not None
+    assert row["item_count"] == 1  # one completed
+    assert "blocked=1" in row["error_detail"]
+    assert "failed=0" in row["error_detail"]
