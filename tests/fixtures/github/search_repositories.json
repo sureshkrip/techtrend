@@ -1,0 +1,79 @@
+{
+  "total_count": 3,
+  "incomplete_results": false,
+  "items": [
+    {
+      "id": 741883704,
+      "node_id": "R_kgDOK3n6mA",
+      "name": "aider",
+      "full_name": "Aider-AI/aider",
+      "owner": {
+        "login": "Aider-AI",
+        "id": 173660741,
+        "type": "Organization"
+      },
+      "html_url": "https://github.com/Aider-AI/aider",
+      "description": "aider is AI pair programming in your terminal",
+      "homepage": "https://aider.chat",
+      "language": "Python",
+      "stargazers_count": 34521,
+      "forks_count": 3102,
+      "topics": [
+        "ai",
+        "ai-agents",
+        "llm",
+        "gpt-4",
+        "coding-assistant"
+      ],
+      "archived": false,
+      "created_at": "2023-05-09T17:39:00Z",
+      "pushed_at": "2026-07-18T22:14:03Z"
+    },
+    {
+      "id": 812004411,
+      "node_id": "R_kgDOMFabCw",
+      "name": "brand-new-agent-runner",
+      "full_name": "someorg/brand-new-agent-runner",
+      "owner": {
+        "login": "someorg",
+        "id": 552211,
+        "type": "Organization"
+      },
+      "html_url": "https://github.com/someorg/brand-new-agent-runner",
+      "description": "A lightweight ai agent runner for orchestrating LLM tool calls",
+      "homepage": null,
+      "language": "TypeScript",
+      "stargazers_count": 41,
+      "forks_count": 3,
+      "topics": [],
+      "archived": false,
+      "created_at": "2026-07-01T09:12:44Z",
+      "pushed_at": "2026-07-19T08:30:00Z"
+    },
+    {
+      "id": 305519201,
+      "node_id": "R_kgDOEjK1oQ",
+      "name": "llama.cpp",
+      "full_name": "ggml-org/llama.cpp",
+      "owner": {
+        "login": "ggml-org",
+        "id": 122379574,
+        "type": "Organization"
+      },
+      "html_url": "https://github.com/ggml-org/llama.cpp",
+      "description": "LLM inference in C/C++",
+      "homepage": "https://ggml.ai",
+      "language": "C++",
+      "stargazers_count": 78234,
+      "forks_count": 11502,
+      "topics": [
+        "llm",
+        "inference",
+        "ggml"
+      ],
+      "archived": false,
+      "created_at": "2023-03-10T18:58:00Z",
+      "pushed_at": "2026-07-19T05:44:12Z"
+    }
+  ]
+}
