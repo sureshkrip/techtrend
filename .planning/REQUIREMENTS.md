@@ -9,9 +9,9 @@
 
 ### Data Model
 
-- [ ] **DATA-01**: System stores a canonical entity record per tracked item (repo, package, story, release) with a stable identity across runs
-- [ ] **DATA-02**: System stores metric observations as append-only timestamped snapshots, so velocity is computable as a delta over a time window
-- [ ] **DATA-03**: System stores derived scores separately from snapshots, keyed to a score version, so re-scoring never requires re-ingesting
+- [x] **DATA-01**: System stores a canonical entity record per tracked item (repo, package, story, release) with a stable identity across runs
+- [x] **DATA-02**: System stores metric observations as append-only timestamped snapshots, so velocity is computable as a delta over a time window
+- [x] **DATA-03**: System stores derived scores separately from snapshots, keyed to a score version, so re-scoring never requires re-ingesting
 - [ ] **DATA-04**: System stores LLM enrichments cached by entity and content hash, so re-ingesting never triggers re-summarizing the same content
 - [ ] **DATA-05**: A partially failed daily run can be re-run safely without creating duplicate snapshots or duplicate entities
 
@@ -60,7 +60,7 @@
 
 ### Health
 
-- [ ] **HEALTH-01**: System records per-source success/failure and item counts for every run
+- [x] **HEALTH-01**: System records per-source success/failure and item counts for every run
 - [ ] **HEALTH-02**: User can see when a source has stopped returning data, rather than discovering a dead collector weeks later
 
 ---

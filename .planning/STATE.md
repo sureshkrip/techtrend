@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 1
-current_phase_name: Foundation & First Signal — GitHub, Scored and Visible
+current_phase: 01
+current_phase_name: foundation-first-signal-github-scored-and-visible
 status: executing
-stopped_at: Phase 1 UI-SPEC approved
-last_updated: "2026-07-19T15:59:59.159Z"
+stopped_at: Completed 01-01-PLAN.md
+last_updated: "2026-07-19T19:06:56.775Z"
 last_activity: 2026-07-19
-last_activity_desc: Roadmap created from requirements + research
+last_activity_desc: Phase 01 execution resumed (wave continue)
 progress:
   total_phases: 1
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 6
+  completed_plans: 1
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-19)
 
 **Core value:** Open it once a day and know, in five minutes, what is actually gaining traction in AI coding — without scrolling social feeds and without missing the thing that matters.
-**Current focus:** Phase 1 — Foundation & First Signal (GitHub, Scored and Visible)
+**Current focus:** Phase 01 — foundation-first-signal-github-scored-and-visible
 
 ## Current Position
 
-Phase: 1 of 4 (Foundation & First Signal — GitHub, Scored and Visible)
-Plan: TBD (not yet planned)
+Phase: 01 (foundation-first-signal-github-scored-and-visible) — EXECUTING
+Plan: 2 of 6
 Status: Ready to execute
-Last activity: 2026-07-19 — Roadmap created from requirements + research
+Last activity: 2026-07-19 — Phase 01 execution resumed (wave continue)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 17%
 
 ## Performance Metrics
 
@@ -54,6 +54,11 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: -
 
 *Updated after each plan completion*
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 01 P01 | 45min | 3 tasks | 18 files |
 
 ## Accumulated Context
 
@@ -66,6 +71,9 @@ Recent decisions affecting current work:
 - [Roadmap]: GitHub is wired before Hacker News (Phase 1 vs. Phase 3) — GitHub's stargazer-timestamp backfill resolves cold start on day one; HN genuinely needs two snapshots and is added once the plugin interface is already proven.
 - [Roadmap]: Idempotency (DATA-05), collector health logging (HEALTH-01/02), and enrichment content-hash caching (DATA-04) are placed with the work they protect (Phase 1 and Phase 2 respectively), not deferred to a later cleanup phase.
 - [Roadmap]: The LLM ranking gate (ENR-01) and hard per-run cap (ENR-02) land in Phase 2, the same phase as the first LLM call — cost control is never added after the fact.
+- [Phase ?]: Task 1 package-legitimacy checkpoint pre-approved by user; all 8 core packages verified against locked CLAUDE.md stack and official GitHub orgs
+- [Phase ?]: Pre-existing uncommitted scaffold (pyproject.toml, config/tracked.toml, techtrend config/logging modules) verified against plan acceptance criteria and committed as-is
+- [Phase ?]: check_same_thread left at sqlite3 default True in connect() per RESEARCH.md concurrency guidance
 
 ### Pending Todos
 
@@ -85,6 +93,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-19T15:28:11.548Z
-Stopped at: Phase 1 UI-SPEC approved
-Resume file: .planning/phases/01-foundation-first-signal-github-scored-and-visible/01-UI-SPEC.md
+Last session: 2026-07-19T19:06:56.747Z
+Stopped at: Completed 01-01-PLAN.md
+Resume file: None
