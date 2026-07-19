@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 01
 current_phase_name: foundation-first-signal-github-scored-and-visible
 status: executing
-stopped_at: Completed 01-04-PLAN.md
-last_updated: "2026-07-19T22:07:49.526Z"
+stopped_at: Completed 01-05-PLAN.md
+last_updated: "2026-07-19T22:09:38.417Z"
 last_activity: 2026-07-19
 last_activity_desc: Phase 01 execution resumed (wave continue)
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 6
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-19)
 ## Current Position
 
 Phase: 01 (foundation-first-signal-github-scored-and-visible) — EXECUTING
-Plan: 5 of 6
+Plan: 6 of 6
 Status: Ready to execute
 Last activity: 2026-07-19 — Phase 01 execution resumed (wave continue)
 
-Progress: [███████░░░] 67%
+Progress: [████████░░] 83%
 
 ## Performance Metrics
 
@@ -62,6 +62,7 @@ Progress: [███████░░░] 67%
 | Phase 01 P02 | 55min | 3 tasks | 9 files |
 | Phase 01 P03 | 70min | 3 tasks | 15 files |
 | Phase 01 P04 | 25min | 3 tasks | 6 files |
+| Phase 01 P05 | 55min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -84,6 +85,8 @@ Recent decisions affecting current work:
 - [Phase ?]: run_manifest records three distinct statuses (success/zero_items/failed) so a silently-dead collector is never conflated with a healthy run (HEALTH-01, Pitfall 1)
 - [Phase ?]: compute_window_gain() anchors its trailing window on an entity's own latest snapshot date rather than wall-clock time, keeping rescore_all a pure function of (entities, snapshots) with no hidden time dependency
 - [Phase ?]: scores rows are written for every non-dormant entity (eligible flag 0/1); the ranked list is a query-time filter, not a write-time exclusion
+- [Phase ?]: 01-05: Backfill degradation confirmed (D-08a Option A pre-approved) — sampled stargazer pagination attempted for every repo; permanent 403/404 recorded as 'blocked' (never retried), transient failures retried via the shared is_retryable predicate. COLL-02/D-05/D-06 satisfied in degraded form only.
+- [Phase ?]: 01-05: Added missing backfill_lookback_days config tunable (default 90, D-06) — no such field existed yet in Tunables.
 
 ### Pending Todos
 
@@ -103,6 +106,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-19T22:07:49.505Z
-Stopped at: Completed 01-04-PLAN.md
+Last session: 2026-07-19T22:09:38.400Z
+Stopped at: Completed 01-05-PLAN.md
 Resume file: None
