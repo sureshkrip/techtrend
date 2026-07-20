@@ -1,0 +1,15 @@
+{# Persistent escalating health strip (D-16, HEALTH-02). Included
+   unconditionally at the top of dashboard.html -- never behind a Jinja
+   `{% if %}` around the include itself, and never the target of an htmx
+   partial swap, so it needs no independent loading state.
+
+   `health` is the dict returned by techtrend.server.health.health_status():
+   {'tier': HealthTier, 'message': str, 'detail': str | None}. It is None
+   only when the DB read failed outright (db_error is set instead, and the
+   db-error copy already communicates the outage without a raw traceback --
+   see partials/table.html). #}
+{% if health %}
+<div class="health-strip health-{{ health.tier.value }}">
+    <span class="health-strip__message">{{ health.message }}</span>{% if health.detail %} <span class="health-strip__detail">({{ health.detail }})</span>{% endif %}
+</div>
+{% endif %}

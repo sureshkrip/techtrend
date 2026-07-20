@@ -57,37 +57,45 @@ h2 {
     margin: 0 0 var(--space-sm) 0;
 }
 
-/* Health strip -- placeholder in this plan; plan 01-06 wires the D-16 tiers */
+/* Persistent escalating health strip (D-16, HEALTH-02). Always rendered
+ * (see partials/health_strip.html) -- quiet grey in the normal tier, loud
+ * in the stale/critical tiers using the two declared semantic color pairs. */
 .health-strip {
     padding: var(--space-md);
     margin-bottom: var(--space-lg);
-    background-color: var(--color-secondary);
-    font-size: var(--font-label);
     font-weight: 600;
+}
+
+.health-normal {
+    background-color: var(--color-secondary);
+    color: #1A1A1A;
+    font-size: var(--font-label);
     line-height: 1.4;
 }
 
-.health-strip--warning {
+.health-stale {
     background-color: var(--color-warning-bg);
     color: var(--color-warning-fg);
+    /* Display type size reserved for exactly this moment (UI-SPEC Typography) */
+    font-size: var(--font-display);
+    line-height: 1.2;
 }
 
-.health-strip--critical {
+.health-critical {
     background-color: var(--color-critical-bg);
     color: var(--color-critical-fg);
-}
-
-.health-strip--critical .health-strip__label {
     font-size: var(--font-display);
+    line-height: 1.2;
 }
 
 /* Dense sortable table (D-14) */
 table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
 }
 
-thead {
+.table-header-row {
     background-color: var(--color-secondary);
 }
 
@@ -100,13 +108,17 @@ th {
     padding: var(--space-sm) 12px;
 }
 
-th a {
+th a.sort-link {
     color: var(--color-accent);
     text-decoration: none;
 }
 
-th a:hover {
+th a.sort-link:hover {
     text-decoration: underline;
+}
+
+.sort-glyph {
+    color: var(--color-accent);
 }
 
 td {
@@ -120,11 +132,50 @@ tbody tr:nth-child(even) {
     background-color: var(--color-secondary);
 }
 
-.col-name {
+/* Fixed column widths shared between header (th) and body (td) cells so the
+ * header row can never reflow independently of the data rows and desync
+ * column alignment (UI-SPEC E3 overflow backstop). */
+.col-rank {
+    width: 56px;
+}
+
+.col-name,
+.repo-name {
+    width: 320px;
     max-width: 320px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.col-velocity {
+    width: 96px;
+}
+
+.col-gained {
+    width: 120px;
+}
+
+.col-stars {
+    width: 96px;
+}
+
+.action-col {
+    width: 220px;
+    white-space: nowrap;
+}
+
+.action-col a {
+    color: var(--color-accent);
+    text-decoration: none;
+}
+
+.action-col a:hover {
+    text-decoration: underline;
+}
+
+.action-col a + a {
+    margin-left: var(--space-xs);
 }
 
 .rank-top {
@@ -132,15 +183,15 @@ tbody tr:nth-child(even) {
     font-weight: 600;
 }
 
-.col-source a,
-.col-docs a {
-    color: var(--color-accent);
-    text-decoration: none;
+.footer-note-row td {
+    border-bottom: none;
 }
 
-.col-source a:hover,
-.col-docs a:hover {
-    text-decoration: underline;
+.footer-note {
+    font-size: var(--font-label);
+    font-weight: 600;
+    color: #1A1A1A;
+    padding-top: var(--space-md);
 }
 
 .empty-state {
@@ -157,4 +208,14 @@ code {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     background-color: var(--color-secondary);
     padding: 2px var(--space-xs);
+}
+
+/* Loading state (UI-SPEC E1 backstop): every sort-header link carries
+ * hx-indicator="#table-body", which makes #table-body the element htmx
+ * toggles the .htmx-request class on for the duration of an in-flight
+ * swap. Dim to ~0.5 opacity instead of a spinner -- local SQLite reads at
+ * this row count are expected well under 200ms. */
+#table-body.htmx-request {
+    opacity: 0.5;
+    transition: opacity 100ms ease-in-out;
 }

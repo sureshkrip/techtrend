@@ -10,39 +10,34 @@
 <body>
     <h1>TechTrend</h1>
 
-    <!-- Placeholder health-strip: plan 01-06 fills in the D-16 escalation tiers -->
-    <div class="health-strip health-strip--quiet">
-        {% if latest_run %}
-            <span class="health-strip__label">Last successful run: {{ latest_run['finished_at'] }}</span>
-        {% else %}
-            <span class="health-strip__label">No successful run recorded yet</span>
-        {% endif %}
-    </div>
+    {% include "partials/health_strip.html" %}
 
-    {% if db_error %}
-        <p class="db-error">Dashboard couldn't read the database &mdash; check <code>techtrend.db</code> exists and try again.</p>
-    {% elif rows %}
-        <table>
-            <thead>
-                <tr>
-                    <th class="col-rank">Rank</th>
-                    <th class="col-name"><a href="/?sort=name">Repo</a></th>
-                    <th class="col-velocity"><a href="/?sort=velocity">Velocity</a></th>
-                    <th class="col-gained"><a href="/?sort=stars_gained">Stars gained</a></th>
-                    <th class="col-stars"><a href="/?sort=stars">Stars</a></th>
-                    <th class="col-source">Source</th>
-                    <th class="col-docs">Docs</th>
-                </tr>
-            </thead>
-            <tbody id="table-body">
-                {% include "partials/table.html" %}
-            </tbody>
-        </table>
-    {% else %}
-        <div class="empty-state">
-            <h2>No data yet</h2>
-            <p>No run has completed yet. Run <code>python -m techtrend.ingest</code> to collect and score your first batch.</p>
-        </div>
-    {% endif %}
+    <table>
+        <tbody id="table-body">
+            {% include "partials/table.html" %}
+        </tbody>
+    </table>
+
+    <script>
+        // E3 mitigation (UI-SPEC backstop, T-01 sort-header error state):
+        // htmx's default behavior on a failed sort GET is to swap nothing,
+        // leaving the previous rows visible under a header glyph that now
+        // implies a re-sort happened. Surface the failure instead of a
+        // silent no-op so a 5xx/network error is never invisible.
+        document.body.addEventListener('htmx:responseError', function (evt) {
+            var target = evt.detail && evt.detail.target;
+            if (target && target.id === 'table-body') {
+                target.innerHTML =
+                    '<tr><td colspan="6" class="db-error">Sort failed — reload the page and try again.</td></tr>';
+            }
+        });
+        document.body.addEventListener('htmx:sendError', function (evt) {
+            var target = evt.detail && evt.detail.target;
+            if (target && target.id === 'table-body') {
+                target.innerHTML =
+                    '<tr><td colspan="6" class="db-error">Sort request failed — check your connection and reload.</td></tr>';
+            }
+        });
+    </script>
 </body>
 </html>

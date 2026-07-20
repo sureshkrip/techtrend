@@ -1,17 +1,62 @@
-{% for row in rows %}
+{# Dense sortable table body (D-14). Rendered both as the full-page tbody
+   content and as the htmx partial swapped into #table-body on every sort
+   GET -- the header row lives HERE, inside the swapped fragment, so the
+   active-sort glyph is regenerated atomically with the rows and never
+   desyncs from the data mid-swap (UI-SPEC E3 loading/error backstops). #}
+<tr class="table-header-row">
+    <th class="col-rank"><span class="col-label">Rank</span></th>
+    <th class="col-name">
+        <a class="sort-link{{ ' sort-active' if sort == 'name' else '' }}"
+           hx-get="/?sort=name" hx-target="#table-body" hx-swap="innerHTML"
+           hx-push-url="true" hx-indicator="#table-body">Repo{% if sort == 'name' %}<span class="sort-glyph"> ▲</span>{% endif %}</a>
+    </th>
+    <th class="col-velocity">
+        <a class="sort-link{{ ' sort-active' if sort == 'velocity' else '' }}"
+           hx-get="/?sort=velocity" hx-target="#table-body" hx-swap="innerHTML"
+           hx-push-url="true" hx-indicator="#table-body">Velocity{% if sort == 'velocity' %}<span class="sort-glyph"> ▼</span>{% endif %}</a>
+    </th>
+    <th class="col-gained">
+        <a class="sort-link{{ ' sort-active' if sort == 'gained' else '' }}"
+           hx-get="/?sort=gained" hx-target="#table-body" hx-swap="innerHTML"
+           hx-push-url="true" hx-indicator="#table-body">Stars gained{% if sort == 'gained' %}<span class="sort-glyph"> ▼</span>{% endif %}</a>
+    </th>
+    <th class="col-stars">
+        <a class="sort-link{{ ' sort-active' if sort == 'stars' else '' }}"
+           hx-get="/?sort=stars" hx-target="#table-body" hx-swap="innerHTML"
+           hx-push-url="true" hx-indicator="#table-body">Stars{% if sort == 'stars' %}<span class="sort-glyph"> ▼</span>{% endif %}</a>
+    </th>
+    <th class="action-col"><span class="col-label">Links</span></th>
+</tr>
+{% if db_error %}
 <tr>
-    <td class="col-rank{% if loop.index <= 3 %} rank-top{% endif %}">{{ loop.index }}</td>
-    <td class="col-name" title="{{ row['full_name'] }}">{{ row['full_name'] }}</td>
-    <td class="col-velocity">{{ '%.3f'|format(row['wilson_lower_bound']) if row['wilson_lower_bound'] is not none else '—' }}</td>
-    <td class="col-gained">{{ row['stars_gained'] if row['stars_gained'] is not none else '—' }}</td>
-    <td class="col-stars">{{ row['stars_total'] if row['stars_total'] is not none else '—' }}</td>
-    <td class="col-source"><a href="{{ row['url'] }}">View on GitHub</a></td>
-    <td class="col-docs">
-        {% if row['docs_url'] %}
-            <a href="{{ row['docs_url'] }}">{{ 'Docs' if row['docs_url_kind'] in ('homepage', 'readme') else 'Repo' }}</a>
-        {% else %}
-            <a href="{{ row['url'] }}">Repo</a>
-        {% endif %}
+    <td colspan="6" class="db-error">{{ db_error }}</td>
+</tr>
+{% elif rows %}
+    {% for row in rows %}
+    <tr>
+        <td class="col-rank{% if loop.index <= 3 %} rank-top{% endif %}">{{ loop.index }}</td>
+        <td class="repo-name" title="{{ row['full_name'] }}">{{ row['full_name'] }}</td>
+        <td class="col-velocity">{{ '%.4f'|format(row['wilson_lower_bound']) }}</td>
+        <td class="col-gained">{{ row['stars_gained'] }}</td>
+        <td class="col-stars">{{ row['stars_total'] if row['stars_total'] is not none else '—' }}</td>
+        <td class="action-col">
+            <a href="{{ row['url'] }}">View on GitHub</a>
+            <a href="{{ row['docs_url'] if row['docs_url'] else row['url'] }}">{{ 'Docs' if row['docs_url_kind'] in ('homepage', 'readme') else 'Repo' }}</a>
+        </td>
+    </tr>
+    {% endfor %}
+    {% if partial_history_count %}
+    <tr class="footer-note-row">
+        <td colspan="6" class="footer-note">
+            {% if partial_history_count == 1 %}1 repo is still building history and isn't ranked yet.{% else %}{{ partial_history_count }} repos are still building history and aren't ranked yet — check back after a few days of data collection.{% endif %}
+        </td>
+    </tr>
+    {% endif %}
+{% else %}
+<tr>
+    <td colspan="6" class="empty-state">
+        <h2>No data yet</h2>
+        <p>No run has completed yet. Run <code>python -m techtrend.ingest</code> to collect and score your first batch.</p>
     </td>
 </tr>
-{% endfor %}
+{% endif %}
