@@ -52,6 +52,23 @@
         </td>
     </tr>
     {% endif %}
+{% elif has_successful_run %}
+{# V2/D-08a: a run HAS completed but nothing is eligible to rank yet --
+   e.g. day one, when window_days=0/stars_gained=0 puts every entity below
+   the SCORE-03 floor. This must never fall through to the "no run has
+   completed yet" copy below (that would be false -- a run did complete),
+   and must surface the same honest "still building history" note the
+   footer uses when rows ARE present, promoted to the primary empty state. #}
+<tr>
+    <td colspan="6" class="empty-state">
+        <h2>Still building history</h2>
+        {% if partial_history_count %}
+        <p>{% if partial_history_count == 1 %}1 repo is still building history and isn't ranked yet.{% else %}{{ partial_history_count }} repos are still building history and aren't ranked yet — check back after a few days of data collection.{% endif %}</p>
+        {% else %}
+        <p>No repos are eligible to rank yet. Check back after the next scheduled run.</p>
+        {% endif %}
+    </td>
+</tr>
 {% else %}
 <tr>
     <td colspan="6" class="empty-state">

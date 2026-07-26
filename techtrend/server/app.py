@@ -19,7 +19,7 @@ from fastapi.templating import Jinja2Templates
 
 from techtrend.config import load_config
 from techtrend.db.connection import connect
-from techtrend.server.health import health_status
+from techtrend.server.health import has_successful_collector_run, health_status
 from techtrend.server.queries import query_partial_history_count, query_ranked
 
 logger = logging.getLogger(__name__)
@@ -52,6 +52,7 @@ def dashboard(request: Request, sort: str = "velocity") -> HTMLResponse:
     applied_sort = sort
     partial_history_count = 0
     health = None
+    has_successful_run = False
     conn: sqlite3.Connection | None = None
 
     try:
@@ -60,6 +61,12 @@ def dashboard(request: Request, sort: str = "velocity") -> HTMLResponse:
         rows, applied_sort = query_ranked(conn, sort=sort)
         partial_history_count = query_partial_history_count(conn, config.tunables.window_days)
         health = health_status(conn, config, datetime.now(UTC))
+        # V2/D-08a: table.html needs this to distinguish "no run has
+        # completed yet" (truly empty install) from "a run completed but
+        # nothing is eligible to rank yet" (D-08a's expected first-week
+        # sparseness) -- the latter must never render the "run ingest"
+        # empty state, which would be false.
+        has_successful_run = has_successful_collector_run(conn)
     except (sqlite3.Error, OSError, tomllib.TOMLDecodeError, ValueError) as exc:
         logger.warning("stage=dashboard status=read_failed error=%s", exc)
         db_error = DB_UNREADABLE_MESSAGE
@@ -77,5 +84,6 @@ def dashboard(request: Request, sort: str = "velocity") -> HTMLResponse:
             "partial_history_count": partial_history_count,
             "health": health,
             "db_error": db_error,
+            "has_successful_run": has_successful_run,
         },
     )

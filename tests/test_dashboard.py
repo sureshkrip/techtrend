@@ -418,6 +418,64 @@ def test_entity_with_scores_across_two_run_dates_renders_exactly_once(tmp_path, 
     assert "0.7000" in response.text
 
 
+# --- V2/D-08a: three distinct empty states (no-run vs run-with-partial vs rows) ---
+
+
+def test_no_successful_run_ever_renders_no_data_yet_state(tmp_path, monkeypatch):
+    """State (a): a totally empty run_manifest (no collector run has ever
+    succeeded) renders the 'No data yet / run ingest' copy -- distinct from
+    state (b) below, which must never fall through to this branch.
+    """
+    db_path, conn = _seed_db(tmp_path)
+    conn.close()
+
+    client = _client(monkeypatch, db_path)
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "No data yet" in response.text
+    assert "Still building history" not in response.text
+
+
+def test_run_completed_but_nothing_eligible_renders_still_building_state(tmp_path, monkeypatch):
+    """State (b): a run HAS completed successfully but every entity is
+    still below the SCORE-03 floor (D-08a's expected first-week
+    sparseness -- window_days=0/stars_gained=0 on day one). Must render the
+    honest 'still building history' copy, never the false 'No run has
+    completed yet' copy that the pre-fix code fell through to.
+    """
+    from techtrend.pipeline.orchestrator import record_stage
+
+    db_path, conn = _seed_db(tmp_path)
+    record_stage(
+        conn,
+        "2026-07-19",
+        "collect:github",
+        "success",
+        item_count=6,
+        started_at="2026-07-19T09:00:00Z",
+        finished_at="2026-07-19T09:00:05Z",
+    )
+    fresh_a = _insert_entity(conn, "1", full_name="owner/fresh-repo-a")
+    fresh_b = _insert_entity(conn, "2", full_name="owner/fresh-repo-b")
+    _insert_score(conn, fresh_a, eligible=0, window_days=0)
+    _insert_score(conn, fresh_b, eligible=0, window_days=1)
+    conn.commit()
+    conn.close()
+
+    client = _client(monkeypatch, db_path)
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "Still building history" in response.text
+    assert "No data yet" not in response.text
+    assert "No run has completed yet" not in response.text
+    assert (
+        "2 repos are still building history and aren't ranked yet"
+        " — check back after a few days of data collection." in response.text
+    )
+
+
 # --- CR-03: config/DB failures degrade to honest copy, never a traceback ---
 
 

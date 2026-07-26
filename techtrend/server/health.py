@@ -130,6 +130,18 @@ def _stale_message(relative: str) -> str:
     return f"Data may be out of date — last successful run was {relative}."
 
 
+def has_successful_collector_run(conn: sqlite3.Connection) -> bool:
+    """True if at least one `collect:*` run_manifest row has ever recorded
+    `status = 'success'` (V2/D-08a). This is the same predicate
+    `health_status()` uses internally to choose `NEVER_COMPLETED_MESSAGE`,
+    exposed publicly so the dashboard route can distinguish "no run has
+    completed yet" from "a run completed but nothing is eligible to rank
+    yet" -- the two empty states table.html must render distinct, honest
+    copy for.
+    """
+    return _latest_collector_stage(conn, status="success") is not None
+
+
 def health_status(conn: sqlite3.Connection, config, now: datetime) -> dict:
     """Return `{'tier': HealthTier, 'message': str, 'detail': str | None}`."""
     staleness_hours = config.tunables.staleness_hours
