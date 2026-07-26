@@ -138,6 +138,50 @@ def test_partial_window_gain(db):
     assert gain.window_days_actual == 2
 
 
+def test_window_gain_uses_last_minus_first_not_max_minus_min(db):
+    """WR-03 regression: a window with an early spike that later partially
+    reverses ([100, 150, 90]) must report the true net change (90 - 100 =
+    -10, a loss), not the peak-to-trough range (150 - 90 = 60, a large
+    apparent gain) -- the pre-fix max()-min() computation would incorrectly
+    report a gain for a repo that actually lost stars over the window.
+    """
+    from techtrend.pipeline.score import compute_window_gain
+
+    entity_id = _insert_entity(db, "spiky")
+    _insert_snapshot(db, entity_id, "2026-07-13", 100)
+    _insert_snapshot(db, entity_id, "2026-07-16", 150)
+    _insert_snapshot(db, entity_id, "2026-07-19", 90)
+    db.commit()
+
+    gain = compute_window_gain(db, entity_id, window_days=7)
+
+    assert gain.stars_gained == -10
+    assert gain.stars_total == 90
+
+
+def test_window_gain_non_monotonic_series_does_not_falsely_clear_the_floor(db):
+    """The same non-monotonic scenario end-to-end through rescore_all: a
+    net-losing entity must not be pushed over the SCORE-03 floor by the
+    max-min defect, even though its peak-to-trough range (60) would have
+    cleared a floor of 25.
+    """
+    from techtrend.pipeline.score import rescore_all
+
+    entity_id = _insert_entity(db, "spiky")
+    _insert_snapshot(db, entity_id, "2026-07-13", 100)
+    _insert_snapshot(db, entity_id, "2026-07-16", 150)
+    _insert_snapshot(db, entity_id, "2026-07-19", 90)
+    db.commit()
+
+    rescore_all(db, _config(floor=25), date(2026, 7, 19))
+
+    row = db.execute(
+        "SELECT eligible, stars_gained FROM scores WHERE entity_id = ?", (entity_id,)
+    ).fetchone()
+    assert row["stars_gained"] == -10
+    assert row["eligible"] == 0
+
+
 def test_floor_inclusive_at_exact_value():
     """The floor is inclusive at exactly the configured value (D-10)."""
     from techtrend.pipeline.score import score_entity

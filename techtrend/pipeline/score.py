@@ -115,7 +115,15 @@ def compute_window_gain(conn, entity_id: int, window_days: int) -> WindowGain:
     in_window = [r for r in rows if date.fromisoformat(r["collected_at"]) >= window_start]
     values = [r["metric_value"] for r in in_window]
 
-    stars_gained = max(values) - min(values)
+    # WR-03 fix: gain is the window's LAST value minus its FIRST value (net
+    # change), not max(values) - min(values) (peak-to-trough range). Star
+    # counts are not strictly monotonic (unstars happen, and D-08a's
+    # backfill-derived points are sampled, not guaranteed monotonic
+    # point-to-point) -- max-min would report a large "gain" for a window
+    # like [100, 150, 90] (an early spike that later partially reverses to
+    # a net LOSS of 10), incorrectly pushing a genuinely-declining repo
+    # over the SCORE-03 floor.
+    stars_gained = values[-1] - values[0]
     stars_total = values[-1]
 
     earliest_in_window = date.fromisoformat(in_window[0]["collected_at"])
