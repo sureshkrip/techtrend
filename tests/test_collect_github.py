@@ -68,6 +68,103 @@ def test_admit_repo_force_excluded_wins_over_topic_match():
 
 
 # ---------------------------------------------------------------------------
+# Discovery search batching (V1: topic-qualifier OR is invalid; keyword
+# free-text OR is valid but capped at 5 boolean operators per query)
+# ---------------------------------------------------------------------------
+
+
+def test_topic_queries_never_or_qualifiers_together():
+    """V1 regression: GitHub's Search API unconditionally rejects OR-ing
+    `topic:` qualifiers together with HTTP 422 ("Logical operators only
+    apply to text, not to qualifiers"), regardless of operator count --
+    confirmed live, not just an over-some-limit case. Each topic must be
+    its own single-qualifier query, never combined with OR.
+    """
+    from techtrend.collectors.github import _search_query_topic
+
+    for topic in ("llm", "ai-agents", "mcp"):
+        query = _search_query_topic(topic)
+        assert query == f"topic:{topic}"
+        assert " OR " not in query
+
+
+def test_keyword_queries_never_exceed_five_boolean_operators():
+    """Free-text keyword OR is valid on GitHub's Search API (unlike
+    qualifier OR), but a query carrying more than 5 boolean operators still
+    returns HTTP 422 regardless of term type. This project's real keyword
+    list (11 entries) previously OR'd them all into one query, over the
+    limit. Assert every generated batch query stays within it, using a list
+    large enough to require multiple batches.
+    """
+    from techtrend.collectors.github import (
+        _MAX_TERMS_PER_SEARCH_PASS,
+        _chunk,
+        _search_query_keywords,
+    )
+
+    keywords = [f"keyword {i}" for i in range(23)]
+
+    keyword_queries = [
+        _search_query_keywords(batch) for batch in _chunk(keywords, _MAX_TERMS_PER_SEARCH_PASS)
+    ]
+
+    # More than one batch was actually required -- otherwise this test would
+    # pass trivially without exercising the chunking at all.
+    assert len(keyword_queries) > 1
+    for query in keyword_queries:
+        assert query.count(" OR ") <= 5
+
+
+def test_discovery_issues_one_request_per_topic_and_batches_keywords(
+    monkeypatch, tmp_path, github_fixture
+):
+    """A discovery config mirroring config/tracked.toml's real 8 topics /
+    11 keywords issues one search request per topic (never OR'd) plus one
+    request per keyword batch (OR'd, capped at 5 operators), and unions
+    every pass's results by full_name rather than duplicating or dropping
+    any pass's hits.
+    """
+    from techtrend.collectors.github import GitHubCollector
+    from techtrend.config import Config, Discovery
+
+    monkeypatch.setenv("GITHUB_TOKEN", "test-token")
+    search_fixture = github_fixture("search_repositories.json")
+
+    seen_queries: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_queries.append(request.url.params.get("q", ""))
+        return httpx.Response(200, json=search_fixture)
+
+    client = build_client(
+        transport=httpx.MockTransport(handler), cache_db_path=tmp_path / "hishel.db"
+    )
+    try:
+        config = Config(
+            discovery=Discovery(
+                topics=[f"topic-{i}" for i in range(8)],
+                keywords=[f"keyword-{i}" for i in range(11)],
+            )
+        )
+        results = GitHubCollector()._discover(client, config)
+    finally:
+        client.close()
+
+    # 8 topics -> 8 single-topic requests; 11 keywords -> batches of 6+5 ->
+    # 2 requests. 10 total.
+    assert len(seen_queries) == 10
+    topic_queries = [q for q in seen_queries if q.startswith("topic:")]
+    keyword_queries = [q for q in seen_queries if q not in topic_queries]
+    assert len(topic_queries) == 8
+    assert all(" OR " not in q for q in topic_queries)
+    assert len(keyword_queries) == 2
+    assert all(q.count(" OR ") <= 5 for q in keyword_queries)
+    # Every pass's mocked response contributed the same fixture items, deduped
+    # by full_name rather than multiplied by the number of passes.
+    assert len(results) == search_fixture["total_count"]
+
+
+# ---------------------------------------------------------------------------
 # is_retryable (COLL-07 boundary)
 # ---------------------------------------------------------------------------
 

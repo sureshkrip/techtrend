@@ -39,6 +39,17 @@ _RETRY_KWARGS = {
     "retry": tenacity.retry_if_exception(is_retryable),
 }
 
+# GitHub's Search API rejects a query carrying more than 5 boolean
+# (AND/OR/NOT) operators with HTTP 422 (V1). N terms joined by " OR "
+# produces N-1 operators, so batches are capped at 6 terms -- the largest
+# batch size that stays at or under the 5-operator limit.
+_MAX_TERMS_PER_SEARCH_PASS = 6
+
+
+def _chunk(items: list[str], size: int) -> list[list[str]]:
+    """Split `items` into consecutive batches of at most `size` elements."""
+    return [items[i : i + size] for i in range(0, len(items), size)]
+
 
 def admit_repo(
     full_name: str,
@@ -71,13 +82,31 @@ def admit_repo(
     return any(keyword.lower() in haystack for keyword in keywords)
 
 
-def _search_query_topics(topics: list[str]) -> str:
-    """`topic:a OR topic:b OR ...` -- best-effort broad discovery pass."""
-    return " OR ".join(f"topic:{topic}" for topic in topics)
+def _search_query_topic(topic: str) -> str:
+    """`topic:X` -- exactly one topic per search request (V1).
+
+    Confirmed live against GitHub's Search API: `topic:a OR topic:b`
+    unconditionally returns HTTP 422 ("The search contains only logical
+    operators (AND / OR / NOT) without any search terms. Logical operators
+    only apply to text, not to qualifiers.") regardless of how few operators
+    are used -- OR-ing `topic:` qualifiers together is never valid, not just
+    over some operator-count limit. Free-text terms (`_search_query_keywords`)
+    do not have this restriction. Each topic is therefore issued as its own
+    search request and the results are unioned by full_name in `_discover`.
+    """
+    return f"topic:{topic}"
 
 
 def _search_query_keywords(keywords: list[str]) -> str:
-    """`("k1" OR "k2" OR ...) in:name,description` -- name/description scan."""
+    """`("k1" OR "k2" OR ...) in:name,description` for one batch of <=
+    `_MAX_TERMS_PER_SEARCH_PASS` keywords -- name/description scan.
+    Free-text OR is valid on GitHub's Search API (unlike qualifier OR, see
+    `_search_query_topic`), but a query carrying more than 5 boolean
+    operators still returns HTTP 422 regardless of term type (V1); N terms
+    joined by " OR " produces N-1 operators, so `_MAX_TERMS_PER_SEARCH_PASS`
+    caps batches at 6. Callers are responsible for chunking the full
+    keywords list via `_chunk` before calling this.
+    """
     terms = " OR ".join(f'"{keyword}"' for keyword in keywords)
     return f"({terms}) in:name,description"
 
@@ -164,13 +193,21 @@ class GitHubCollector:
         by full_name. A search-pass failure is logged and skipped rather than
         aborting the whole collector run -- discovery is additive on top of
         the seed list, never a hard dependency.
+
+        V1: GitHub's Search API rejects OR-ing `topic:` qualifiers at all
+        (confirmed live -- see `_search_query_topic`), so every configured
+        topic is issued as its own single-topic search request. Keywords
+        (free text, where OR is valid) are batched into groups of at most
+        `_MAX_TERMS_PER_SEARCH_PASS` -- GitHub separately rejects any query
+        carrying more than 5 boolean operators regardless of term type.
+        Results from every pass are unioned by full_name.
         """
         candidates: dict[str, dict] = {}
         passes = []
-        if config.discovery.topics:
-            passes.append(("topics", _search_query_topics(config.discovery.topics)))
-        if config.discovery.keywords:
-            passes.append(("keywords", _search_query_keywords(config.discovery.keywords)))
+        for topic in config.discovery.topics:
+            passes.append((f"topics:{topic}", _search_query_topic(topic)))
+        for i, batch in enumerate(_chunk(config.discovery.keywords, _MAX_TERMS_PER_SEARCH_PASS)):
+            passes.append((f"keywords[{i}]", _search_query_keywords(batch)))
 
         for label, query in passes:
             try:
