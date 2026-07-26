@@ -6,11 +6,13 @@ imports or calls techtrend.ingest and exposes no route that writes -- the
 dashboard is strictly read-only (D-17).
 """
 
+import logging
 import sqlite3
+import tomllib
 from datetime import UTC, datetime
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Request
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -19,6 +21,8 @@ from techtrend.config import load_config
 from techtrend.db.connection import connect
 from techtrend.server.health import health_status
 from techtrend.server.queries import query_partial_history_count, query_ranked
+
+logger = logging.getLogger(__name__)
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 TEMPLATES_DIR = WEB_DIR / "templates"
@@ -33,35 +37,35 @@ templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
-def get_conn():
-    """Yield one connection per request; never a shared cross-thread connection."""
-    conn = connect()
-    try:
-        yield conn
-    finally:
-        conn.close()
-
-
 @app.get("/", response_class=HTMLResponse)
-def dashboard(
-    request: Request,
-    sort: str = "velocity",
-    conn: sqlite3.Connection = Depends(get_conn),  # noqa: B008 -- FastAPI's own DI idiom
-) -> HTMLResponse:
+def dashboard(request: Request, sort: str = "velocity") -> HTMLResponse:
+    """CR-03 fix: `load_config()` and `connect()` are both fallible (a
+    malformed config/tracked.toml or a corrupted techtrend.db) and must
+    degrade to `DB_UNREADABLE_MESSAGE`, never a raw framework traceback
+    (UI-SPEC "Error state — DB unreadable"). Both calls now live inside the
+    same try/except boundary as the query calls -- neither happens in a
+    FastAPI dependency (which a route's own try/except cannot cover) nor
+    before the try: block starts.
+    """
     db_error = None
     rows: list[sqlite3.Row] = []
     applied_sort = sort
     partial_history_count = 0
     health = None
-
-    config = load_config()
+    conn: sqlite3.Connection | None = None
 
     try:
+        config = load_config()
+        conn = connect()
         rows, applied_sort = query_ranked(conn, sort=sort)
         partial_history_count = query_partial_history_count(conn, config.tunables.window_days)
         health = health_status(conn, config, datetime.now(UTC))
-    except sqlite3.Error:
+    except (sqlite3.Error, OSError, tomllib.TOMLDecodeError, ValueError) as exc:
+        logger.warning("stage=dashboard status=read_failed error=%s", exc)
         db_error = DB_UNREADABLE_MESSAGE
+    finally:
+        if conn is not None:
+            conn.close()
 
     template_name = "partials/table.html" if request.headers.get("HX-Request") else "dashboard.html"
     return templates.TemplateResponse(

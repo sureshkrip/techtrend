@@ -12,6 +12,7 @@ import re
 
 from fastapi.testclient import TestClient
 
+import techtrend.config as config_module
 import techtrend.db.connection as connection_module
 from techtrend.db.connection import connect, init_db
 from techtrend.pipeline.score import CURRENT_SCORE_VERSION
@@ -415,6 +416,38 @@ def test_entity_with_scores_across_two_run_dates_renders_exactly_once(tmp_path, 
     assert response.text.count('class="repo-name"') == 1
     # Pinned to the latest run_date's bound (0.7000), not an earlier one.
     assert "0.7000" in response.text
+
+
+# --- CR-03: config/DB failures degrade to honest copy, never a traceback ---
+
+
+def test_malformed_toml_config_renders_db_error_not_traceback(tmp_path, monkeypatch):
+    bad_toml = tmp_path / "bad-tracked.toml"
+    bad_toml.write_text("this is not valid toml [[[", encoding="utf-8")
+    monkeypatch.setattr(config_module, "DEFAULT_CONFIG_PATH", bad_toml)
+
+    db_path, conn = _seed_db(tmp_path, name="config-error.db")
+    conn.close()
+
+    client = _client(monkeypatch, db_path)
+    response = client.get("/")
+
+    assert response.status_code == 200
+    # Jinja2 autoescapes the apostrophe as &#39; -- match the copy without it.
+    assert "read the database" in response.text
+    assert "Traceback" not in response.text
+
+
+def test_corrupt_db_file_renders_db_error_not_traceback(tmp_path, monkeypatch):
+    db_path = tmp_path / "corrupt.db"
+    db_path.write_bytes(b"not a sqlite file at all")
+
+    client = _client(monkeypatch, db_path)
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "read the database" in response.text
+    assert "Traceback" not in response.text
 
 
 def test_dashboard_never_writes_to_the_database(tmp_path, monkeypatch):
