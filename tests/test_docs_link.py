@@ -57,6 +57,55 @@ def test_multiple_matching_readme_links_returns_first_in_document_order():
     assert first_call == second_call
 
 
+def test_javascript_scheme_homepage_never_rendered_as_docs_link():
+    """CR-02 regression: a `javascript:` (or any non-http(s)) homepage must
+    never be returned as the 'homepage' result -- it falls through to the
+    honest 'repo' fallback exactly like an empty homepage does.
+    """
+    repo_meta = {
+        "homepage": "javascript:alert(1)",
+        "html_url": "https://github.com/a/b",
+    }
+
+    url, kind = resolve_docs_url(repo_meta, None)
+
+    assert (url, kind) == ("https://github.com/a/b", "repo")
+
+
+def test_data_and_vbscript_scheme_homepages_also_rejected():
+    for scheme_payload in ("data:text/html,<script>alert(1)</script>", "vbscript:msgbox(1)"):
+        repo_meta = {"homepage": scheme_payload, "html_url": "https://github.com/a/b"}
+
+        url, kind = resolve_docs_url(repo_meta, None)
+
+        assert kind == "repo"
+        assert url == "https://github.com/a/b"
+
+
+def test_https_homepage_still_admitted_after_scheme_check():
+    """The scheme allowlist must not reject legitimate http(s) homepages."""
+    repo_meta = {"homepage": "https://aider.chat", "html_url": "https://github.com/a/b"}
+
+    url, kind = resolve_docs_url(repo_meta, None)
+
+    assert (url, kind) == ("https://aider.chat", "homepage")
+
+
+def test_readme_link_extraction_already_constrained_to_http_s_schemes():
+    """The README-link branch is regex-constrained to https?:// already
+    (_MARKDOWN_LINK_RE / _BARE_URL_RE) -- a javascript: link embedded in the
+    README must never be extracted as a candidate docs link in the first
+    place, so it can never surface through the 'readme' branch either.
+    """
+    repo_meta = {"homepage": "", "html_url": "https://github.com/a/b"}
+    readme = "See our [docs](javascript:alert(1)) for more, or javascript:alert(2) directly."
+
+    url, kind = resolve_docs_url(repo_meta, readme)
+
+    assert kind == "repo"
+    assert url == "https://github.com/a/b"
+
+
 def test_kind_is_always_exactly_one_of_three_literals_and_repo_never_relabeled():
     homepage_result = resolve_docs_url(
         {"homepage": "https://x.dev", "html_url": "https://github.com/a/b"}, None

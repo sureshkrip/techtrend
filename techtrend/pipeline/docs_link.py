@@ -19,6 +19,12 @@ DOCS_PATTERNS: tuple[str, ...] = (
     "quickstart",
 )
 
+# GitHub's `homepage` field is attacker-settable free text on any repo, with
+# no scheme validation upstream (CR-02). Only http(s) is ever rendered as an
+# href -- javascript:/data:/vbscript:/etc. schemes fall through to the
+# honest 'repo' fallback exactly as an empty homepage does.
+_ALLOWED_SCHEMES: tuple[str, ...] = ("http://", "https://")
+
 # Matches markdown links `[text](url)` and bare http(s) URLs, in document
 # order. No markdown parser is pulled in for link extraction alone -- a
 # regex is sufficient and matches RESEARCH.md Pattern 6's guidance.
@@ -64,7 +70,7 @@ def resolve_docs_url(repo_meta: dict, readme_text: str | None) -> tuple[str, str
     honestly as `'repo'` (DASH-05 empty).
     """
     homepage = (repo_meta.get("homepage") or "").strip()
-    if homepage:
+    if homepage and homepage.lower().startswith(_ALLOWED_SCHEMES):
         return homepage, "homepage"
 
     if readme_text:
