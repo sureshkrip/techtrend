@@ -154,6 +154,44 @@ def test_write_snapshot_upsert_replaces_same_day_value(db):
     assert rows[0]["metric_value"] == 150
 
 
+def test_write_snapshot_upsert_also_updates_source_kind_on_conflict(db):
+    """WR-02 regression: a later write for the same
+    (entity_id, collected_at, metric_name) under a different source_kind
+    must update the stored provenance label too, not just metric_value --
+    otherwise `source_kind` can end up describing where the value used to
+    come from rather than where the currently-stored value came from
+    (D-07's auditability guarantee).
+    """
+    entity_id = resolve_entity(db, _item(), NOW)
+    db.commit()
+
+    write_snapshot(db, entity_id, "2026-07-19", "stars", 100, source_kind="backfill")
+    write_snapshot(db, entity_id, "2026-07-19", "stars", 150, source_kind="observed")
+    db.commit()
+
+    row = db.execute(
+        "SELECT metric_value, source_kind FROM snapshots"
+        " WHERE entity_id = ? AND collected_at = '2026-07-19' AND metric_name = 'stars'",
+        (entity_id,),
+    ).fetchone()
+    assert row["metric_value"] == 150
+    assert row["source_kind"] == "observed"
+
+    # And the reverse direction: an 'observed' row overwritten by a later
+    # 'backfill' write also picks up the new label -- the policy is
+    # "whichever write happened most recently wins", not a one-way ratchet.
+    write_snapshot(db, entity_id, "2026-07-19", "stars", 200, source_kind="backfill")
+    db.commit()
+
+    row = db.execute(
+        "SELECT metric_value, source_kind FROM snapshots"
+        " WHERE entity_id = ? AND collected_at = '2026-07-19' AND metric_name = 'stars'",
+        (entity_id,),
+    ).fetchone()
+    assert row["metric_value"] == 200
+    assert row["source_kind"] == "backfill"
+
+
 # ---------------------------------------------------------------------------
 # run_collection: DATA-01 empty, DATA-05 full-run idempotency
 # ---------------------------------------------------------------------------
