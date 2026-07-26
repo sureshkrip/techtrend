@@ -129,9 +129,17 @@ def compute_window_gain(conn, entity_id: int, window_days: int) -> WindowGain:
 
 
 def rescore_all(conn, config, run_date) -> int:
-    """Deletes existing rows for CURRENT_SCORE_VERSION at every run_date,
+    """Deletes existing rows for CURRENT_SCORE_VERSION at THIS run_date only,
     then re-scores every non-dormant entity and writes one `scores` row per
     entity (eligible or not) keyed on (entity_id, run_date, score_version).
+
+    Scoping the DELETE to `run_date` (not every run_date at this
+    score_version) is load-bearing: prior run_dates' rows must survive so
+    `pipeline/stability.py::log_stability`'s day-to-day Jaccard comparison
+    has a previous run to compare against (CR-01 fix). `server/queries.py`
+    already pins to `MAX(run_date)` and is proven safe with multiple
+    run_dates coexisting, so leaving history in place does not change what
+    the dashboard renders.
 
     Rows at other score_version values are left untouched (T-01-21). Reads
     only `entities` and `snapshots` -- no network I/O, and no read of the
@@ -143,7 +151,10 @@ def rescore_all(conn, config, run_date) -> int:
     window_days = config.tunables.window_days
     floor = config.tunables.window_gain_floor
 
-    conn.execute("DELETE FROM scores WHERE score_version = ?", (CURRENT_SCORE_VERSION,))
+    conn.execute(
+        "DELETE FROM scores WHERE score_version = ? AND run_date = ?",
+        (CURRENT_SCORE_VERSION, run_date_str),
+    )
 
     entities = conn.execute(
         "SELECT id, source FROM entities WHERE dormant_at IS NULL ORDER BY id"

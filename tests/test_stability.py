@@ -126,6 +126,64 @@ def test_log_stability_info_when_stable(db, caplog):
     assert any(record.levelno == logging.INFO for record in caplog.records)
 
 
+def _config(floor=25):
+    from techtrend.config import Config, Tunables
+
+    return Config(tunables=Tunables(window_gain_floor=floor))
+
+
+def _insert_snapshot(conn, entity_id, collected_at, value):
+    conn.execute(
+        """
+        INSERT INTO snapshots (entity_id, collected_at, metric_name, metric_value, source_kind)
+        VALUES (?, ?, 'stars', ?, 'observed')
+        """,
+        (entity_id, collected_at, value),
+    )
+
+
+def test_rescore_all_preserves_prior_run_date_for_stability_comparison(db):
+    """CR-01 regression: `rescore_all`'s DELETE must be scoped to the
+    run_date being (re)scored, not every prior run_date at this
+    score_version -- otherwise `log_stability`'s `_previous_run_date` query
+    always finds nothing and every day's overlap reports 0.0 forever,
+    regardless of the actual ranking's stability.
+    """
+    from techtrend.pipeline.score import CURRENT_SCORE_VERSION, rescore_all
+    from techtrend.pipeline.stability import log_stability
+
+    stable_id = _insert_entity(db, "stable")
+    _insert_snapshot(db, stable_id, "2026-07-18", 50)
+    db.commit()
+
+    rescore_all(db, _config(floor=0), date(2026, 7, 18))
+
+    day2only_id = _insert_entity(db, "day2only")
+    _insert_snapshot(db, day2only_id, "2026-07-19", 30)
+    db.commit()
+
+    rescore_all(db, _config(floor=0), date(2026, 7, 19))
+
+    # Both run_dates' rows must coexist at CURRENT_SCORE_VERSION -- the CR-01
+    # bug deleted 2026-07-18's rows the instant 2026-07-19 was scored.
+    run_dates = {
+        row["run_date"]
+        for row in db.execute(
+            "SELECT DISTINCT run_date FROM scores WHERE score_version = ?",
+            (CURRENT_SCORE_VERSION,),
+        ).fetchall()
+    }
+    assert run_dates == {"2026-07-18", "2026-07-19"}
+
+    overlap = log_stability(db, date(2026, 7, 19), top_n=25)
+
+    # A real prior run was found and compared against -- not the "day one"
+    # empty-prev-set fallback, which would trivially report 0.0 regardless
+    # of actual stability.
+    assert day2only_id  # entity exists only from day 2 onward, as designed
+    assert overlap == pytest.approx(0.5)
+
+
 def test_score_entry_point_writes_scores_and_run_manifest(tmp_path, monkeypatch):
     """`python -m techtrend.score` against a fixture-populated DB writes
     scores rows and a run_manifest row with stage 'score'.
