@@ -219,6 +219,20 @@ class GitHubCollector:
                     exc.response.status_code,
                 )
                 continue
+            except httpx.TransportError as exc:
+                # `is_retryable` (http.py) only recognizes HTTPStatusError, so a
+                # transport-level failure (connection reset, DNS blip, timeout)
+                # is never retried by tenacity -- it reaches here directly after
+                # the first attempt. Treat it the same as a status-level
+                # failure: log and skip this search pass rather than aborting
+                # the whole collect:github stage, including the seed repos that
+                # don't depend on discovery at all (WR-04).
+                logger.warning(
+                    "stage=collect:github discovery=%s error=%s note=search pass skipped",
+                    label,
+                    exc,
+                )
+                continue
             for item in page.get("items", []):
                 candidates[item["full_name"]] = item
         return list(candidates.values())

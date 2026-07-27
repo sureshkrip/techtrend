@@ -164,6 +164,40 @@ def test_discovery_issues_one_request_per_topic_and_batches_keywords(
     assert len(results) == search_fixture["total_count"]
 
 
+def test_discovery_transport_error_skips_pass_not_whole_run(
+    monkeypatch, tmp_path, github_fixture
+):
+    """A transport-level failure (connection reset, DNS blip, timeout) on one
+    discovery pass is logged and skipped rather than aborting the whole
+    collect:github stage -- other passes' hits still come through (WR-04).
+    Regression: previously only HTTPStatusError was caught, so a TransportError
+    propagated and lost the seed repos too.
+    """
+    from techtrend.collectors.github import GitHubCollector
+    from techtrend.config import Config, Discovery
+
+    monkeypatch.setenv("GITHUB_TOKEN", "test-token")
+    search_fixture = github_fixture("search_repositories.json")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        q = request.url.params.get("q", "")
+        if "topic:doomed" in q:
+            raise httpx.ConnectError("simulated connection reset", request=request)
+        return httpx.Response(200, json=search_fixture)
+
+    client = build_client(
+        transport=httpx.MockTransport(handler), cache_db_path=tmp_path / "hishel.db"
+    )
+    try:
+        config = Config(discovery=Discovery(topics=["doomed", "healthy"], keywords=[]))
+        results = GitHubCollector()._discover(client, config)
+    finally:
+        client.close()
+
+    # The healthy topic's pass still contributed its hits; the run did not abort.
+    assert len(results) == search_fixture["total_count"]
+
+
 # ---------------------------------------------------------------------------
 # is_retryable (COLL-07 boundary)
 # ---------------------------------------------------------------------------
