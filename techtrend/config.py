@@ -10,7 +10,11 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-DEFAULT_CONFIG_PATH = Path("config/tracked.toml")
+from techtrend import paths
+
+# Env-overridable via TECHTREND_CONFIG. Unlike DB/cache/logs this does NOT follow
+# TECHTREND_DATA_DIR — tracked.toml is image-baked config, not runtime state.
+DEFAULT_CONFIG_PATH = paths.CONFIG_PATH
 
 
 class Seed(BaseModel):

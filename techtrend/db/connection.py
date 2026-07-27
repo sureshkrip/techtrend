@@ -7,9 +7,13 @@ cross-thread connection -- check_same_thread is left at its default True.
 import sqlite3
 from pathlib import Path
 
+from techtrend import paths
+
 _SCHEMA_PATH = Path(__file__).resolve().parent / "schema.sql"
 
-DEFAULT_DB_PATH = Path("techtrend.db")
+# Env-overridable (TECHTREND_DB / TECHTREND_DATA_DIR) so a container can write to
+# a persistent volume; defaults to repo-relative techtrend.db for local dev.
+DEFAULT_DB_PATH = paths.DB_PATH
 
 
 def connect(db_path: Path | None = None) -> sqlite3.Connection:

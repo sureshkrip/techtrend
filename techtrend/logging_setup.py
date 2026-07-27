@@ -9,7 +9,10 @@ log GitHub status codes and messages only.
 import logging
 from pathlib import Path
 
-DEFAULT_LOGFILE = Path("logs/techtrend.log")
+from techtrend import paths
+
+# Env-overridable (TECHTREND_LOG_FILE / TECHTREND_DATA_DIR); defaults to logs/ locally.
+DEFAULT_LOGFILE = paths.LOG_FILE
 LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s: %(message)s"
 
 

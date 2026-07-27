@@ -28,10 +28,14 @@ from dotenv import load_dotenv
 from hishel import CacheOptions, SpecificationPolicy, SyncSqliteStorage
 from hishel.httpx import SyncCacheTransport
 
+from techtrend import paths
+
 logger = logging.getLogger(__name__)
 
-HISHEL_CACHE_DIR = Path(".hishel")
-HISHEL_CACHE_DB = HISHEL_CACHE_DIR / "github.db"
+# Env-overridable (TECHTREND_CACHE_DIR / TECHTREND_DATA_DIR) so the RFC-9111 cache
+# persists on a container volume rather than the ephemeral filesystem.
+HISHEL_CACHE_DIR = paths.CACHE_DIR
+HISHEL_CACHE_DB = paths.CACHE_DB
 
 load_dotenv()
 
