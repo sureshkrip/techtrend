@@ -234,6 +234,40 @@ def test_failed_collector_yields_critical_with_failure_copy(db, frozen_now):
     assert "ago ago" not in result["message"]
 
 
+def test_failed_score_stage_escalates_health_even_though_collect_succeeded(db, frozen_now):
+    """WR-01: a healthy `collect:github` stage must not mask a failed `score`
+    stage -- the health strip is the only user-visible trace of a scoring
+    failure per score.py's own docstring ("a stale scores table after a
+    failed run must leave a visible trace, never a silent one", T-01-20).
+    """
+    good = frozen_now - timedelta(hours=1)
+    record_stage(
+        db,
+        "2026-07-19",
+        "collect:github",
+        "success",
+        item_count=10,
+        started_at=_iso(good),
+        finished_at=_iso(good),
+    )
+    record_stage(
+        db,
+        "2026-07-19",
+        "score",
+        "failed",
+        item_count=0,
+        error_detail="unexpected data shape",
+        started_at=_iso(good),
+        finished_at=_iso(good),
+    )
+    db.commit()
+
+    result = health_status(db, Config(), frozen_now)
+
+    assert result["tier"] == HealthTier.critical
+    assert result["tier"] != HealthTier.normal
+
+
 def test_never_completed_uses_distinct_copy(db, frozen_now):
     """An empty run_manifest (no collector run has ever succeeded) takes
     the distinct 'never completed successfully' copy, not the 'failed on

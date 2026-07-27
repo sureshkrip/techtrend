@@ -98,6 +98,21 @@ def _latest_collector_stage(
     ).fetchone()
 
 
+def _latest_score_stage(conn: sqlite3.Connection) -> sqlite3.Row | None:
+    """Most recent `score` run_manifest row, mirroring `_latest_collector_stage`
+    (D-16/WR-01) -- the collect stage succeeding says nothing about whether the
+    scores derived from it were ever written.
+    """
+    return conn.execute(
+        """
+        SELECT * FROM run_manifest
+        WHERE stage = 'score'
+        ORDER BY run_date DESC, started_at DESC
+        LIMIT 1
+        """
+    ).fetchone()
+
+
 def _trailing_average_non_trivial(conn: sqlite3.Connection, trailing_runs: int) -> bool:
     """True when the average item_count across the last `trailing_runs`
     collector runs (most recent first, including the current one) is
@@ -170,6 +185,17 @@ def health_status(conn: sqlite3.Connection, config, now: datetime) -> dict:
                 "message": _failure_message(good_relative),
                 "detail": _truncate_error_detail(latest_collector["error_detail"]),
             }
+
+    # A successful collect stage says nothing about whether the score stage
+    # that runs afterward actually produced a ranking -- check it separately
+    # (WR-01/D-16) so a failed score run is never masked by a healthy collect.
+    latest_score = _latest_score_stage(conn)
+    if latest_score is not None and latest_score["status"] == "failed":
+        return {
+            "tier": HealthTier.critical,
+            "message": _failure_message(good_relative),
+            "detail": _truncate_error_detail(latest_score["error_detail"]),
+        }
 
     latest_any_success = query_latest_run(conn)
     if latest_any_success is not None:
