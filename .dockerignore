@@ -1,0 +1,31 @@
+# Keep the build context (and image) lean and secret-free.
+
+# Secrets — never bake into an image layer.
+.env
+.env.*
+!.env.example
+
+# Local mutable state — belongs on the /data volume, not in the image.
+techtrend.db
+techtrend.db-wal
+techtrend.db-shm
+.hishel/
+logs/
+
+# Python / uv build artifacts and the local venv (image builds its own).
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Repo tooling and non-runtime content.
+.git/
+.gitignore
+.github/
+.planning/
+.claude/
+tests/
+*.md
+!README.md
