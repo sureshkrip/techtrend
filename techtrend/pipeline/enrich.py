@@ -165,6 +165,12 @@ def run_enrichment(
         conn, score_version=CURRENT_SCORE_VERSION, cap=tunables.enrichment_cap
     )
 
+    if not candidates:
+        # Zero eligible entities -- exit before building any real client, so
+        # a zero_items run never requires GITHUB_TOKEN/ANTHROPIC_API_KEY to
+        # be set (ENR-01 empty).
+        return 0
+
     if fetch_grounding_fn is None:
         grounding_client = build_client()
         grounding_char_cap = tunables.grounding_char_cap
