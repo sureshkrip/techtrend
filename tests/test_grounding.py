@@ -1,15 +1,19 @@
-"""Grounding text extraction/normalization tests (D-07, D-09, Common
-Pitfall 1 -- badge-churn cache defeat; 02-VALIDATION.md Wave 0).
+"""Grounding text extraction/normalization/fetch tests (D-07, D-08, D-09,
+ENR-05, Common Pitfall 1 -- badge-churn cache defeat; 02-VALIDATION.md
+Wave 0 + 02-03 Task 2 fetch_grounding contract).
 
-`techtrend.pipeline.grounding` does not exist yet -- these tests define
-`extract_intro`/`normalize_for_hash`'s contract before a later plan
-implements it. Imports are inside each test function so
-`pytest --collect-only` succeeds cleanly (no module-level ImportError at
-collection time); running the tests fails/errors until the module exists,
-which is the intended Wave 0 RED state.
+`extract_intro`/`normalize_for_hash` were Wave 0 failing scaffolds; the
+`fetch_grounding` tests below were added in Plan 02-03 (Task 2) since Wave 0
+did not scaffold them -- same RED-before-implementation discipline, driven
+through an `httpx.MockTransport` (no live GitHub call), mirroring
+`tests/test_collect_github.py`'s style.
 """
 
 from pathlib import Path
+
+import httpx
+
+from techtrend.collectors.http import build_client
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures" / "github"
 
@@ -60,3 +64,63 @@ def test_normalize_for_hash_is_stable_across_badge_only_changes():
     intro_b = "Intro text.\n\n![build](https://img.shields.io/badge/build-failing)"
 
     assert normalize_for_hash("desc", intro_a) == normalize_for_hash("desc", intro_b)
+
+
+# ---------------------------------------------------------------------------
+# fetch_grounding (Task 2, ENR-05, D-08) -- driven through httpx.MockTransport,
+# no live GitHub call, mirroring tests/test_collect_github.py's style.
+# ---------------------------------------------------------------------------
+
+
+def test_fetch_grounding_returns_description_and_intro_on_success(monkeypatch, tmp_path, github_fixture):
+    from techtrend.pipeline.grounding import fetch_grounding
+
+    monkeypatch.setenv("GITHUB_TOKEN", "test-token")
+    metadata = github_fixture("repo_metadata.json")
+    readme_text = _load_readme_with_badges()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/readme"):
+            return httpx.Response(200, text=readme_text)
+        return httpx.Response(200, json=metadata)
+
+    client = build_client(
+        transport=httpx.MockTransport(handler), cache_db_path=tmp_path / "hishel.db"
+    )
+    try:
+        result = fetch_grounding(client, metadata["full_name"], char_cap=2000)
+    finally:
+        client.close()
+
+    assert result is not None
+    description, intro = result
+    assert description == metadata["description"]
+    assert "Example Badge Repo" in intro
+    assert "## Installation" not in intro
+
+
+def test_fetch_grounding_returns_none_when_description_and_readme_both_empty(
+    monkeypatch, tmp_path, github_fixture
+):
+    """ENR-05/D-08: description empty AND README unfetchable/empty -> None,
+    the signal for the caller to skip the LLM entirely rather than fabricate."""
+    from techtrend.pipeline.grounding import fetch_grounding
+
+    monkeypatch.setenv("GITHUB_TOKEN", "test-token")
+    metadata = dict(github_fixture("repo_metadata.json"))
+    metadata["description"] = None
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/readme"):
+            return httpx.Response(404, json={"message": "Not Found"})
+        return httpx.Response(200, json=metadata)
+
+    client = build_client(
+        transport=httpx.MockTransport(handler), cache_db_path=tmp_path / "hishel.db"
+    )
+    try:
+        result = fetch_grounding(client, metadata["full_name"], char_cap=2000)
+    finally:
+        client.close()
+
+    assert result is None
