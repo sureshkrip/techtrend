@@ -24,6 +24,11 @@ defense-in-depth against any row set that (via a test fixture, a crash
 between versions, or a future change to `rescore_all`) leaves more than one
 run_date behind: without it, an entity with `scores` rows from two different
 run_dates renders as two separate table rows instead of one.
+
+`query_ranked` also LEFT JOINs `enrichments` (never JOIN) so an enrichment
+cap-overflow or fetch failure never removes an already-ranked row (ENR-06),
+and accepts an optional `section` filter for the sidebar (DASH-02/D-11) --
+bound as a SQL parameter, never interpolated.
 """
 
 import sqlite3
@@ -53,6 +58,11 @@ _QUERY_RANKED_SQL = """
         scores.wilson_lower_bound,
         scores.stars_gained,
         scores.window_days,
+        enrichments.summary_line_1,
+        enrichments.summary_line_2,
+        enrichments.section,
+        enrichments.low_confidence,
+        enrichments.status AS enrichment_status,
         (
             SELECT snapshots.metric_value
             FROM snapshots
@@ -63,6 +73,11 @@ _QUERY_RANKED_SQL = """
         ) AS stars_total
     FROM entities
     JOIN scores ON scores.entity_id = entities.id
+    LEFT JOIN enrichments ON enrichments.entity_id = entities.id
+        AND enrichments.computed_at = (
+            SELECT MAX(e2.computed_at) FROM enrichments AS e2
+            WHERE e2.entity_id = entities.id
+        )
     WHERE scores.score_version = :score_version
       AND scores.eligible = 1
       AND scores.run_date = (
@@ -70,12 +85,13 @@ _QUERY_RANKED_SQL = """
           FROM scores AS latest
           WHERE latest.score_version = :score_version
       )
+      {section_filter}
     ORDER BY {order_by}
 """
 
 
 def query_ranked(
-    conn: sqlite3.Connection, sort: str = DEFAULT_SORT
+    conn: sqlite3.Connection, sort: str = DEFAULT_SORT, section: str | None = None
 ) -> tuple[list[sqlite3.Row], str]:
     """Return every eligible, current-score-version entity, ordered by the
     requested sort, plus the sort key actually applied.
@@ -84,12 +100,64 @@ def query_ranked(
     raising or reaching SQL unfiltered. The returned `applied_sort` reflects
     reality -- the template renders its active-sort glyph against the sort
     that actually ran, not the one that was requested.
+
+    `enrichments` is LEFT JOINed (not JOINed) on the same MAX(computed_at)
+    correlated-subquery "current row" idiom `query_partial_history_count`
+    already uses for `scores.run_date` -- an eligible entity with no
+    enrichments row (never enriched, capped, or a fetch_failed tombstone)
+    must still appear in the result set with null summary/section fields,
+    never be silently dropped (ENR-06/D-10, DASH-02 boundary).
+
+    `section`, when given, narrows to rows whose current enrichment's
+    `section` matches -- bound as a SQL parameter (`:section`), never
+    interpolated as raw text, matching the discipline `SORT_KEYS` already
+    enforces for `sort` (T-01-06/T-01-29, T-02-14). An unenriched row (null
+    section) never matches a specific section filter and only appears under
+    the default `section=None` ("All") view (D-13).
     """
     applied_sort = sort if sort in SORT_KEYS else DEFAULT_SORT
     order_by = SORT_KEYS[applied_sort]
-    sql = _QUERY_RANKED_SQL.format(order_by=order_by)
-    rows = conn.execute(sql, {"score_version": CURRENT_SCORE_VERSION}).fetchall()
+    section_filter = "AND enrichments.section = :section" if section else ""
+    sql = _QUERY_RANKED_SQL.format(order_by=order_by, section_filter=section_filter)
+    params: dict[str, object] = {"score_version": CURRENT_SCORE_VERSION}
+    if section:
+        params["section"] = section
+    rows = conn.execute(sql, params).fetchall()
     return rows, applied_sort
+
+
+def query_section_counts(conn: sqlite3.Connection) -> dict[str, int]:
+    """Per-section counts for the sidebar (DASH-02/D-11), pinned to the same
+    MAX(run_date)/eligible=1/current-score-version seam as query_ranked, so
+    sidebar counts never drift from what the table actually renders.
+
+    Uses a JOIN (not LEFT JOIN) and excludes null sections -- an unenriched
+    entity contributes to no section's count, matching D-13 (unenriched
+    items only ever appear under "All").
+    """
+    rows = conn.execute(
+        """
+        SELECT enrichments.section AS section, COUNT(*) AS count
+        FROM entities
+        JOIN scores ON scores.entity_id = entities.id
+        JOIN enrichments ON enrichments.entity_id = entities.id
+            AND enrichments.computed_at = (
+                SELECT MAX(e2.computed_at) FROM enrichments AS e2
+                WHERE e2.entity_id = entities.id
+            )
+        WHERE scores.score_version = :score_version
+          AND scores.eligible = 1
+          AND enrichments.section IS NOT NULL
+          AND scores.run_date = (
+              SELECT MAX(latest.run_date)
+              FROM scores AS latest
+              WHERE latest.score_version = :score_version
+          )
+        GROUP BY enrichments.section
+        """,
+        {"score_version": CURRENT_SCORE_VERSION},
+    ).fetchall()
+    return {row["section"]: row["count"] for row in rows}
 
 
 def query_partial_history_count(conn: sqlite3.Connection, window_days: int) -> int:
