@@ -200,3 +200,59 @@ def test_fetch_failure_skips_llm(tmp_path):
     assert row["status"] == "fetch_failed"
     assert row["content_hash"] is None
     conn.close()
+
+
+# --- ENR-06/D-10: one candidate's failure never aborts the run ---
+
+
+def test_per_candidate_failure_does_not_abort_run(tmp_path):
+    from techtrend.config import load_config
+    from techtrend.pipeline.enrich import run_enrichment
+    from techtrend.pipeline.llm import Confidence, EnrichmentResult
+
+    conn = _seed_db(tmp_path)
+    failing = _insert_entity(conn, "1", full_name="owner/failing-repo")
+    healthy = _insert_entity(conn, "2", full_name="owner/healthy-repo")
+    _insert_score(conn, failing, wilson_lower_bound=0.9, eligible=1)
+    _insert_score(conn, healthy, wilson_lower_bound=0.5, eligible=1)
+    conn.commit()
+
+    def fake_fetch_grounding(full_name):
+        return full_name, full_name
+
+    def fake_content_hash(description, readme_intro):
+        return description  # distinct per candidate -- good enough as a fake hash
+
+    def fake_llm_call(**kwargs):
+        if kwargs["description"] == "owner/failing-repo":
+            raise RuntimeError("simulated LLM failure")
+        return EnrichmentResult(
+            summary_line_1="what it is",
+            summary_line_2="why it matters",
+            section="agentic_coding_tools",
+            confidence=Confidence.high,
+        )
+
+    config = load_config()
+    written = run_enrichment(
+        conn,
+        config,
+        date(2026, 7, 19),
+        fetch_grounding_fn=fake_fetch_grounding,
+        content_hash_fn=fake_content_hash,
+        llm_call_fn=fake_llm_call,
+    )
+
+    # The failing candidate's error is isolated -- run_enrichment still
+    # returns normally and still enriches the healthy candidate.
+    assert written == 1
+    failing_row = conn.execute(
+        "SELECT status FROM enrichments WHERE entity_id = ?", (failing,)
+    ).fetchone()
+    assert failing_row is None
+    healthy_row = conn.execute(
+        "SELECT status FROM enrichments WHERE entity_id = ?", (healthy,)
+    ).fetchone()
+    assert healthy_row is not None
+    assert healthy_row["status"] == "complete"
+    conn.close()
