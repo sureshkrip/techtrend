@@ -75,7 +75,7 @@ Plans:
   3. A summary for a brand-new or obscure tool reflects its actual fetched README/changelog/thread text, not a plausible-sounding fabrication from the model's own training knowledge.
   4. Re-running the pipeline on unchanged items never re-calls the LLM (same content hash hits the cache), and if enrichment fails for an item, that item still displays ranked in the dashboard without a summary rather than disappearing.
 
-**Plans**: 3/5 plans executed
+**Plans**: 4/5 plans executed
 
 Plans:
 **Wave 1**
@@ -89,7 +89,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 02-04-PLAN.md — Cost-gated enrichment stage + `python -m techtrend.enrich` entry point (gate, hard cap, content-hash cache, failure isolation)
+- [x] 02-04-PLAN.md — Cost-gated enrichment stage + `python -m techtrend.enrich` entry point (gate, hard cap, content-hash cache, failure isolation)
 
 **Wave 4** *(blocked on Wave 3)*
 
@@ -133,7 +133,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|-----------------|--------|-----------|
 | 1. Foundation & First Signal | 6/6 | Complete    | 2026-08-13 |
-| 2. Cost-Gated LLM Enrichment | 3/5 | In Progress|  |
+| 2. Cost-Gated LLM Enrichment | 4/5 | In Progress|  |
 | 3. Source Breadth | 0/TBD | Not started | - |
 | 4. Autonomous Daily Scheduling | 0/TBD | Not started | - |
 

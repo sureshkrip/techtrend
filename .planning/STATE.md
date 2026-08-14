@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 02
 current_phase_name: cost-gated-llm-enrichment
 status: executing
-stopped_at: Completed 02-02-PLAN.md
-last_updated: "2026-08-14T22:51:58.680Z"
+stopped_at: Completed 02-04-PLAN.md
+last_updated: "2026-08-14T23:11:46.157Z"
 last_activity: 2026-08-14
 last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 11
-  completed_plans: 9
+  completed_plans: 10
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 ## Current Position
 
 Phase: 02 (cost-gated-llm-enrichment) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-08-14 — Phase 02 execution started
 
-Progress: [████████░░] 82%
+Progress: [█████████░] 91%
 
 ## Performance Metrics
 
@@ -66,6 +66,7 @@ Progress: [████████░░] 82%
 | Phase 02 P01 | 45min | 3 tasks | 9 files |
 | Phase 02 P03 | 20min | 2 tasks | 2 files |
 | Phase 02 P02 | 12min | 3 tasks | 4 files |
+| Phase 02 P04 | 8min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 02-02: T-02-SC package-legitimacy checkpoint approved by user; anthropic confirmed as official anthropics/anthropic-sdk-python SDK per CLAUDE.md's locked stack
 - [Phase ?]: 02-02: build_section_result_model() exposed as a public function per Wave 0 test contract, so section-enum enforcement is unit-testable without a live call
 - [Phase ?]: 02-02: No tenacity wrapper around client.messages.parse() -- the anthropic SDK already retries 429/5xx internally
+- [Phase ?]: 02-04: select_candidates/run_enrichment implemented against the committed Wave 0 test contract (injectable fetch_grounding_fn/content_hash_fn/llm_call_fn), not the plan prose's unconditional client-construction description
+- [Phase ?]: 02-04: LLM refusal writes the same fetch_failed tombstone shape (content_hash NULL) as a grounding fetch failure, preserving the schema invariant and retrying the LLM on the same content next run
+- [Phase ?]: 02-04: real GitHub/Anthropic clients are built lazily inside run_enrichment only when the candidate set is non-empty, so a zero-candidate run needs no GITHUB_TOKEN/ANTHROPIC_API_KEY
 
 ### Pending Todos
 
@@ -125,6 +129,6 @@ Items acknowledged and carried forward from phase/milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-14T22:51:58.664Z
-Stopped at: Completed 02-02-PLAN.md
+Last session: 2026-08-14T23:11:46.122Z
+Stopped at: Completed 02-04-PLAN.md
 Resume file: None
