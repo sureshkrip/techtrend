@@ -12,11 +12,16 @@
 
     {% include "partials/health_strip.html" %}
 
-    <table>
-        <tbody id="table-body">
-            {% include "partials/table.html" %}
-        </tbody>
-    </table>
+    <div class="dashboard-layout">
+        {% include "partials/sidebar.html" %}
+        <div class="table-content">
+            <table>
+                <tbody id="table-body">
+                    {% include "partials/table.html" %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 
     <script>
         // E3 mitigation (UI-SPEC backstop, T-01 sort-header error state):
@@ -28,14 +33,14 @@
             var target = evt.detail && evt.detail.target;
             if (target && target.id === 'table-body') {
                 target.innerHTML =
-                    '<tr><td colspan="6" class="db-error">Sort failed — reload the page and try again.</td></tr>';
+                    '<tr><td colspan="7" class="db-error">Sort failed — reload the page and try again.</td></tr>';
             }
         });
         document.body.addEventListener('htmx:sendError', function (evt) {
             var target = evt.detail && evt.detail.target;
             if (target && target.id === 'table-body') {
                 target.innerHTML =
-                    '<tr><td colspan="6" class="db-error">Sort request failed — check your connection and reload.</td></tr>';
+                    '<tr><td colspan="7" class="db-error">Sort request failed — check your connection and reload.</td></tr>';
             }
         });
     </script>

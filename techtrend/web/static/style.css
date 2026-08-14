@@ -88,6 +88,53 @@ h2 {
     line-height: 1.2;
 }
 
+/* Persistent left-nav section filter sidebar (DASH-02, D-11). Lives outside
+ * #table-body so it never gets swapped by an htmx sort/section request. */
+.dashboard-layout {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-lg);
+}
+
+.section-nav {
+    flex: 0 0 200px;
+    display: flex;
+    flex-direction: column;
+}
+
+.section-link {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-sm) 12px;
+    color: #1A1A1A;
+    text-decoration: none;
+    font-size: var(--font-label);
+    font-weight: 400;
+    line-height: 1.4;
+}
+
+.section-link:hover {
+    background-color: var(--color-secondary);
+}
+
+.section-active {
+    background-color: var(--color-secondary);
+    color: var(--color-accent);
+    font-weight: 600;
+}
+
+.section-count {
+    color: #6B7280;
+    font-weight: 400;
+    margin-left: var(--space-sm);
+}
+
+.table-content {
+    flex: 1;
+    min-width: 0;
+}
+
 /* Dense sortable table (D-14) */
 table {
     width: 100%;
@@ -181,6 +228,40 @@ tbody tr:nth-child(even) {
 .rank-top {
     color: var(--color-accent);
     font-weight: 600;
+}
+
+/* Summary cell (ENR-06/D-10). Honest fallbacks for unenriched rows --
+ * "summary pending" / "source unavailable" instead of a blank cell -- and a
+ * spottable low-confidence flag (D-02) using the existing warning tokens. */
+.col-summary,
+.summary-line,
+.summary-fallback {
+    font-size: var(--font-label);
+    line-height: 1.4;
+}
+
+.col-summary {
+    white-space: normal;
+}
+
+.summary-line {
+    display: block;
+}
+
+.summary-fallback {
+    color: #6B7280;
+    font-style: italic;
+}
+
+.low-confidence-flag {
+    display: inline-block;
+    margin-top: var(--space-xs);
+    padding: 1px var(--space-xs);
+    background-color: var(--color-warning-bg);
+    color: var(--color-warning-fg);
+    font-size: var(--font-label);
+    font-weight: 600;
+    line-height: 1.4;
 }
 
 .footer-note-row td {

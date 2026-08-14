@@ -116,9 +116,14 @@ def _sort_link_html(text, key):
     """Return the rendered `<a class="sort-link...">...</a>` block for the
     given sort key's column header, so a test can inspect whether
     `sort-active` and the glyph landed on that specific column.
+
+    02-05: sort-header links now also carry `&section=...` (Pitfall #5, both
+    controls must preserve each other's state) -- the regex tolerates that
+    trailing query param rather than requiring an exact match on `sort=key`
+    alone.
     """
     match = re.search(
-        rf'<a class="sort-link( sort-active)?"\s+hx-get="/\?sort={key}"[^>]*>.*?</a>',
+        rf'<a class="sort-link( sort-active)?"\s+hx-get="/\?sort={key}(&section=[^"]*)?"[^>]*>.*?</a>',
         text,
         re.S,
     )

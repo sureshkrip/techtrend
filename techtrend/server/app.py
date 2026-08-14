@@ -20,7 +20,11 @@ from fastapi.templating import Jinja2Templates
 from techtrend.config import load_config
 from techtrend.db.connection import connect
 from techtrend.server.health import has_successful_collector_run, health_status
-from techtrend.server.queries import query_partial_history_count, query_ranked
+from techtrend.server.queries import (
+    query_partial_history_count,
+    query_ranked,
+    query_section_counts,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +42,7 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 @app.get("/", response_class=HTMLResponse)
-def dashboard(request: Request, sort: str = "velocity") -> HTMLResponse:
+def dashboard(request: Request, sort: str = "velocity", section: str | None = None) -> HTMLResponse:
     """CR-03 fix: `load_config()` and `connect()` are both fallible (a
     malformed config/tracked.toml or a corrupted techtrend.db) and must
     degrade to `DB_UNREADABLE_MESSAGE`, never a raw framework traceback
@@ -46,6 +50,10 @@ def dashboard(request: Request, sort: str = "velocity") -> HTMLResponse:
     same try/except boundary as the query calls -- neither happens in a
     FastAPI dependency (which a route's own try/except cannot cover) nor
     before the try: block starts.
+
+    `section` (DASH-02) threads straight through to `query_ranked` and never
+    affects `query_section_counts`, which always reflects every section's
+    full count regardless of the current filter.
     """
     db_error = None
     rows: list[sqlite3.Row] = []
@@ -53,12 +61,16 @@ def dashboard(request: Request, sort: str = "velocity") -> HTMLResponse:
     partial_history_count = 0
     health = None
     has_successful_run = False
+    section_counts: dict[str, int] = {}
+    sections: list = []
     conn: sqlite3.Connection | None = None
 
     try:
         config = load_config()
         conn = connect()
-        rows, applied_sort = query_ranked(conn, sort=sort)
+        rows, applied_sort = query_ranked(conn, sort=sort, section=section)
+        section_counts = query_section_counts(conn)
+        sections = config.sections
         partial_history_count = query_partial_history_count(conn, config.tunables.window_days)
         health = health_status(conn, config, datetime.now(UTC))
         # V2/D-08a: table.html needs this to distinguish "no run has
@@ -81,6 +93,9 @@ def dashboard(request: Request, sort: str = "velocity") -> HTMLResponse:
         {
             "rows": rows,
             "sort": applied_sort,
+            "section": section,
+            "section_counts": section_counts,
+            "sections": sections,
             "partial_history_count": partial_history_count,
             "health": health,
             "db_error": db_error,
