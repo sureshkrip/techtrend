@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 2
-current_phase_name: Cost-Gated LLM Enrichment
+current_phase: 02
+current_phase_name: cost-gated-llm-enrichment
 status: executing
-stopped_at: Phase 2 context gathered
-last_updated: "2026-08-14T22:07:09.589Z"
-last_activity: 2026-08-13
-last_activity_desc: Phase 01 complete, transitioned to Phase 2
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-08-14T22:25:56.786Z"
+last_activity: 2026-08-14
+last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 2
   completed_phases: 1
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 11
+  completed_plans: 7
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-13)
 
 **Core value:** Open it once a day and know, in five minutes, what is actually gaining traction in AI coding — without scrolling social feeds and without missing the thing that matters.
-**Current focus:** Phase 2 — Cost-Gated LLM Enrichment
+**Current focus:** Phase 02 — cost-gated-llm-enrichment
 
 ## Current Position
 
-Phase: 2 — Cost-Gated LLM Enrichment
-Plan: Not started
+Phase: 02 (cost-gated-llm-enrichment) — EXECUTING
+Plan: 2 of 5
 Status: Ready to execute
-Last activity: 2026-08-13 — Phase 01 complete, transitioned to Phase 2
+Last activity: 2026-08-14 — Phase 02 execution started
 
-Progress: [█████░░░░░] Phase 1 of 4 complete (all 6 plans)
+Progress: [██████░░░░] 64%
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Progress: [█████░░░░░] Phase 1 of 4 complete (all 6 plans)
 | Phase 01 P03 | 70min | 3 tasks | 15 files |
 | Phase 01 P04 | 25min | 3 tasks | 6 files |
 | Phase 01 P05 | 55min | 3 tasks | 8 files |
+| Phase 02 P01 | 45min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -87,6 +88,9 @@ Recent decisions affecting current work:
 - [Phase ?]: scores rows are written for every non-dormant entity (eligible flag 0/1); the ranked list is a query-time filter, not a write-time exclusion
 - [Phase ?]: 01-05: Backfill degradation confirmed (D-08a Option A pre-approved) — sampled stargazer pagination attempted for every repo; permanent 403/404 recorded as 'blocked' (never retried), transient failures retried via the shared is_retryable predicate. COLL-02/D-05/D-06 satisfied in degraded form only.
 - [Phase ?]: 01-05: Added missing backfill_lookback_days config tunable (default 90, D-06) — no such field existed yet in Tunables.
+- [Phase ?]: 02-01: enrichments uses a composite (entity_id, content_hash) UNIQUE key with MAX(computed_at) join, matching the codebase's existing scores/MAX(run_date) idiom (A5)
+- [Phase ?]: 02-01: Section taxonomy extends config/tracked.toml as [[sections]] rather than a new config file (A4)
+- [Phase ?]: 02-01: Wave 0 test contracts fix pipeline.grounding/llm/enrich's exact function signatures for Plans 02-02..02-05 to implement against
 
 ### Pending Todos
 
@@ -113,6 +117,6 @@ Items acknowledged and carried forward from phase/milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-14T01:50:44.876Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-cost-gated-llm-enrichment/02-CONTEXT.md
+Last session: 2026-08-14T22:25:56.759Z
+Stopped at: Completed 02-01-PLAN.md
+Resume file: None

@@ -12,7 +12,7 @@
 - [x] **DATA-01**: System stores a canonical entity record per tracked item (repo, package, story, release) with a stable identity across runs
 - [x] **DATA-02**: System stores metric observations as append-only timestamped snapshots, so velocity is computable as a delta over a time window
 - [x] **DATA-03**: System stores derived scores separately from snapshots, keyed to a score version, so re-scoring never requires re-ingesting
-- [ ] **DATA-04**: System stores LLM enrichments cached by entity and content hash, so re-ingesting never triggers re-summarizing the same content
+- [x] **DATA-04**: System stores LLM enrichments cached by entity and content hash, so re-ingesting never triggers re-summarizing the same content
 - [x] **DATA-05**: A partially failed daily run can be re-run safely without creating duplicate snapshots or duplicate entities
 
 ### Collection
@@ -38,7 +38,7 @@
 ### LLM Enrichment
 
 - [ ] **ENR-01**: Only items clearing a configurable ranking threshold are sent to the LLM for enrichment
-- [ ] **ENR-02**: System enforces a hard per-run cap on enriched items, independent of the ranking threshold
+- [x] **ENR-02**: System enforces a hard per-run cap on enriched items, independent of the ranking threshold
 - [ ] **ENR-03**: LLM generates a two-line "what this is / why it matters" summary for each enriched item
 - [ ] **ENR-04**: LLM assigns each enriched item to exactly one of the seven defined sections
 - [ ] **ENR-05**: Summaries are grounded on freshly fetched source text (README, changelog, thread) — never generated from the model's parametric knowledge
