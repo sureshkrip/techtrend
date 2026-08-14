@@ -508,6 +508,91 @@ def test_corrupt_db_file_renders_db_error_not_traceback(tmp_path, monkeypatch):
     assert "Traceback" not in response.text
 
 
+def _insert_enrichment(
+    conn,
+    entity_id,
+    *,
+    content_hash="deadbeef",
+    status="complete",
+    summary_line_1="line 1",
+    summary_line_2="line 2",
+    section="agentic_coding_tools",
+    confidence="high",
+    low_confidence=0,
+    computed_at="2026-07-19T00:00:00Z",
+):
+    conn.execute(
+        """
+        INSERT INTO enrichments (
+            entity_id, content_hash, status, summary_line_1, summary_line_2,
+            section, confidence, low_confidence, computed_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            entity_id,
+            content_hash,
+            status,
+            summary_line_1,
+            summary_line_2,
+            section,
+            confidence,
+            low_confidence,
+            computed_at,
+        ),
+    )
+
+
+# --- ENR-06: enrichment failure/cap-overflow never removes a ranked row ---
+
+
+def test_unenriched_item_still_renders(tmp_path, monkeypatch):
+    """An eligible entity with no `enrichments` row (cap overflow, fetch
+    failure, or simply not enriched yet) must still appear in the ranked
+    table -- D-10's 'summary pending' honest marker, never a dropped row."""
+    db_path, conn = _seed_db(tmp_path, name="unenriched.db")
+    entity_id = _insert_entity(conn, "1", full_name="owner/unenriched-repo")
+    _insert_score(conn, entity_id, wilson_lower_bound=0.5, eligible=1)
+    conn.commit()
+    conn.close()
+
+    client = _client(monkeypatch, db_path)
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "owner/unenriched-repo" in response.text
+    assert "summary pending" in response.text
+
+
+# --- DASH-02/D-13: ?section=X filters the ranked table ---
+
+
+def test_section_filter(tmp_path, monkeypatch):
+    """`?section=X` narrows the ranked table to that section's filings only
+    (D-11/D-12); an unenriched item (no section yet) appears under the
+    default 'All' view but drops out of every specific section filter
+    (D-13)."""
+    db_path, conn = _seed_db(tmp_path, name="section-filter.db")
+    filed = _insert_entity(conn, "1", full_name="owner/filed-repo")
+    unenriched = _insert_entity(conn, "2", full_name="owner/unenriched-repo")
+    _insert_score(conn, filed, wilson_lower_bound=0.9, eligible=1)
+    _insert_score(conn, unenriched, wilson_lower_bound=0.5, eligible=1)
+    _insert_enrichment(conn, filed, section="agentic_coding_tools")
+    conn.commit()
+    conn.close()
+
+    client = _client(monkeypatch, db_path)
+
+    all_response = client.get("/")
+    assert all_response.status_code == 200
+    assert "owner/filed-repo" in all_response.text
+    assert "owner/unenriched-repo" in all_response.text
+
+    filtered_response = client.get("/?sort=velocity&section=agentic_coding_tools")
+    assert filtered_response.status_code == 200
+    assert "owner/filed-repo" in filtered_response.text
+    assert "owner/unenriched-repo" not in filtered_response.text
+
+
 def test_dashboard_never_writes_to_the_database(tmp_path, monkeypatch):
     db_path, conn = _seed_db(tmp_path)
     entity_id = _insert_entity(conn, "1", full_name="owner/read-only-check")
