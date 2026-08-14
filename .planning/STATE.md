@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 02
 current_phase_name: cost-gated-llm-enrichment
 status: executing
-stopped_at: Completed 02-03-PLAN.md
-last_updated: "2026-08-14T22:38:35.079Z"
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-08-14T22:51:58.680Z"
 last_activity: 2026-08-14
 last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 11
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 ## Current Position
 
 Phase: 02 (cost-gated-llm-enrichment) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-08-14 — Phase 02 execution started
 
-Progress: [███████░░░] 73%
+Progress: [████████░░] 82%
 
 ## Performance Metrics
 
@@ -65,6 +65,7 @@ Progress: [███████░░░] 73%
 | Phase 01 P05 | 55min | 3 tasks | 8 files |
 | Phase 02 P01 | 45min | 3 tasks | 9 files |
 | Phase 02 P03 | 20min | 2 tasks | 2 files |
+| Phase 02 P02 | 12min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 02-03: fetch_grounding takes char_cap as a required parameter (no hardcoded default) -- the single default lives in Tunables.grounding_char_cap (D-15)
 - [Phase ?]: 02-03: fetch_grounding's client is a required parameter (no internal build_client() fallback) -- production caller constructs once via build_client() and passes it in; tests inject an httpx.MockTransport-backed client
 - [Phase ?]: 02-03: Wave 0 did not scaffold fetch_grounding tests -- added them as a standalone RED test(...) commit before the GREEN feat(...) implementation commit, per the task's own tdd=true requirement
+- [Phase ?]: 02-02: T-02-SC package-legitimacy checkpoint approved by user; anthropic confirmed as official anthropics/anthropic-sdk-python SDK per CLAUDE.md's locked stack
+- [Phase ?]: 02-02: build_section_result_model() exposed as a public function per Wave 0 test contract, so section-enum enforcement is unit-testable without a live call
+- [Phase ?]: 02-02: No tenacity wrapper around client.messages.parse() -- the anthropic SDK already retries 429/5xx internally
 
 ### Pending Todos
 
@@ -121,6 +125,6 @@ Items acknowledged and carried forward from phase/milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-14T22:38:35.065Z
-Stopped at: Completed 02-03-PLAN.md
+Last session: 2026-08-14T22:51:58.664Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None
