@@ -17,7 +17,7 @@ def test_init_db_is_idempotent(db):
     from techtrend.db.connection import init_db
 
     # db fixture already called init_db once; call again and confirm no error
-    # and exactly four user tables.
+    # and exactly five user tables (Phase 2 adds `enrichments`).
     init_db(db)
 
     tables = sorted(
@@ -26,7 +26,7 @@ def test_init_db_is_idempotent(db):
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
         )
     )
-    assert tables == ["entities", "run_manifest", "scores", "snapshots"]
+    assert tables == ["enrichments", "entities", "run_manifest", "scores", "snapshots"]
 
 
 def test_entities_upsert_is_idempotent_on_source_and_native_id(db, frozen_now):
