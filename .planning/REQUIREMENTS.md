@@ -41,7 +41,7 @@
 - [x] **ENR-02**: System enforces a hard per-run cap on enriched items, independent of the ranking threshold
 - [ ] **ENR-03**: LLM generates a two-line "what this is / why it matters" summary for each enriched item
 - [ ] **ENR-04**: LLM assigns each enriched item to exactly one of the seven defined sections
-- [ ] **ENR-05**: Summaries are grounded on freshly fetched source text (README, changelog, thread) — never generated from the model's parametric knowledge
+- [x] **ENR-05**: Summaries are grounded on freshly fetched source text (README, changelog, thread) — never generated from the model's parametric knowledge
 - [ ] **ENR-06**: Enrichment failures do not lose ingested data; the item remains ranked and displayed without a summary
 
 ### Dashboard

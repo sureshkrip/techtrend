@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 02
 current_phase_name: cost-gated-llm-enrichment
 status: executing
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-08-14T22:25:56.786Z"
+stopped_at: Completed 02-03-PLAN.md
+last_updated: "2026-08-14T22:38:35.079Z"
 last_activity: 2026-08-14
 last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 11
-  completed_plans: 7
+  completed_plans: 8
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 ## Current Position
 
 Phase: 02 (cost-gated-llm-enrichment) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-08-14 — Phase 02 execution started
 
-Progress: [██████░░░░] 64%
+Progress: [███████░░░] 73%
 
 ## Performance Metrics
 
@@ -64,6 +64,7 @@ Progress: [██████░░░░] 64%
 | Phase 01 P04 | 25min | 3 tasks | 6 files |
 | Phase 01 P05 | 55min | 3 tasks | 8 files |
 | Phase 02 P01 | 45min | 3 tasks | 9 files |
+| Phase 02 P03 | 20min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 02-01: enrichments uses a composite (entity_id, content_hash) UNIQUE key with MAX(computed_at) join, matching the codebase's existing scores/MAX(run_date) idiom (A5)
 - [Phase ?]: 02-01: Section taxonomy extends config/tracked.toml as [[sections]] rather than a new config file (A4)
 - [Phase ?]: 02-01: Wave 0 test contracts fix pipeline.grounding/llm/enrich's exact function signatures for Plans 02-02..02-05 to implement against
+- [Phase ?]: 02-03: fetch_grounding takes char_cap as a required parameter (no hardcoded default) -- the single default lives in Tunables.grounding_char_cap (D-15)
+- [Phase ?]: 02-03: fetch_grounding's client is a required parameter (no internal build_client() fallback) -- production caller constructs once via build_client() and passes it in; tests inject an httpx.MockTransport-backed client
+- [Phase ?]: 02-03: Wave 0 did not scaffold fetch_grounding tests -- added them as a standalone RED test(...) commit before the GREEN feat(...) implementation commit, per the task's own tdd=true requirement
 
 ### Pending Todos
 
@@ -117,6 +121,6 @@ Items acknowledged and carried forward from phase/milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-14T22:25:56.759Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-08-14T22:38:35.065Z
+Stopped at: Completed 02-03-PLAN.md
 Resume file: None
