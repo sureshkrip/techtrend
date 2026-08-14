@@ -76,3 +76,57 @@ stability_top_n = 25
 # returning zero items against a non-trivial trailing average escalates
 # the health banner (Pitfall #1).
 zero_items_trailing_runs = 5
+# Hard per-run cap on enrichment LLM calls, independent of the ranking
+# threshold (ENR-02, D-04) — applied to the candidate SET, before any
+# fetch, so overflow stays ranked-but-unenriched and is first in line on
+# the next run (D-05).
+enrichment_cap = 15
+# README intro truncation cap in characters, applied before the first H2+
+# heading (D-07).
+grounding_char_cap = 2000
+# Claude model id for the enrichment summarize+classify call (D-03) — the
+# cheapest model that clears the bar for a two-line summary + one-of-seven
+# label; upgrade only this value if borderline classification proves weak.
+enrichment_model = "claude-haiku-4-5"
+# Confidence tier that trips the low-confidence dashboard flag (D-02).
+# Enum-only ("high"|"medium"|"low") — JSON Schema has no numeric range
+# support (Common Pitfall 2), so this names a tier, not a float threshold.
+confidence_flag_threshold = "low"
+
+# Seven fixed sections (v1 taxonomy, PROJECT.md §Context) — declared order
+# is preserved and drives the LLM section enum (D-15, A4). Editable here
+# without a code change; a new item must have exactly one obvious home.
+[[sections]]
+id = "agentic_coding_tools"
+label = "Agentic coding tools"
+description = "Claude Code, Cursor, Codex, Aider, GSD, Superpowers"
+
+[[sections]]
+id = "models_releases"
+label = "Models & releases"
+description = "New model launches, capability/pricing changes, benchmarks"
+
+[[sections]]
+id = "agent_frameworks"
+label = "Agent frameworks"
+description = "LangGraph, CrewAI, Agent SDKs, orchestration libs"
+
+[[sections]]
+id = "protocols_interop"
+label = "Protocols & interop"
+description = "MCP servers, tool-calling standards, A2A"
+
+[[sections]]
+id = "safety_guardrails"
+label = "Safety & guardrails"
+description = "Guardrails AI, evals, LLM-as-judge, red-teaming"
+
+[[sections]]
+id = "rag_context"
+label = "RAG & context"
+description = "Vector stores, retrieval, long-context techniques"
+
+[[sections]]
+id = "local_inference"
+label = "Local & inference"
+description = "Ollama, llama.cpp, quantization, serving"

@@ -49,6 +49,29 @@ class Tunables(BaseModel):
     stability_top_n: int = 25
     # Trailing runs averaged for the D-16 zero-items floor check.
     zero_items_trailing_runs: int = 5
+    # Hard per-run cap on enrichment LLM calls, independent of ranking
+    # threshold (ENR-02, D-04). Applied to the candidate SET (which entities
+    # are even fetched), not just successful LLM calls -- see A6.
+    enrichment_cap: int = 15
+    # README intro truncation cap in characters, before the first H2+ heading
+    # (D-07).
+    grounding_char_cap: int = 2000
+    # Claude model id for the summarize+classify call (D-03).
+    enrichment_model: str = "claude-haiku-4-5"
+    # Confidence tier that trips the low-confidence dashboard flag (D-02);
+    # enum-only ("high"|"medium"|"low") -- JSON Schema has no numeric range
+    # support, see Common Pitfall 2.
+    confidence_flag_threshold: str = "low"
+
+
+class SectionDef(BaseModel):
+    # One of the seven fixed v1 taxonomy entries (ENR-04, D-15, A4). id is
+    # the stable filing key stored in enrichments.section; label/description
+    # are shown in the dashboard sidebar and fed into the LLM prompt's
+    # section-definitions block.
+    id: str
+    label: str
+    description: str
 
 
 class Config(BaseModel):
@@ -56,6 +79,9 @@ class Config(BaseModel):
     discovery: Discovery = Field(default_factory=Discovery)
     overrides: Overrides = Field(default_factory=Overrides)
     tunables: Tunables = Field(default_factory=Tunables)
+    # Seven-section taxonomy (ENR-04, D-15, A4), declared order preserved --
+    # the LLM section enum is built from this order, not re-sorted.
+    sections: list[SectionDef] = Field(default_factory=list)
 
 
 def load_config(path: Path | None = None) -> Config:
