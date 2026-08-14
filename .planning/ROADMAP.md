@@ -15,7 +15,7 @@ This sequencing intentionally departs from a purely horizontal build order (sche
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation & First Signal — GitHub, Scored and Visible** - Schema, backfilled GitHub collector, confidence-bounded velocity scorer, and a minimal dashboard — real ranked data, visible, before any LLM spend
+- [x] **Phase 1: Foundation & First Signal — GitHub, Scored and Visible** - Schema, backfilled GitHub collector, confidence-bounded velocity scorer, and a minimal dashboard — real ranked data, visible, before any LLM spend (completed 2026-08-13)
 - [ ] **Phase 2: Cost-Gated LLM Enrichment** - Gate + hard cap + LLM summarize/classify into the seven sections, cached by content hash, never losing ranked data on failure
 - [ ] **Phase 3: Source Breadth — Discourse, Downloads & Changelogs** - Hacker News, npm/PyPI, and vendor changelogs added through the existing collector plugin interface
 - [ ] **Phase 4: Autonomous Daily Scheduling** - Windows Task Scheduler wired with wake/missed-run settings so the pipeline runs unattended every day
@@ -58,7 +58,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 01-06-PLAN.md — Dense sortable dashboard, honest link labels, escalating health strip
+- [x] 01-06-PLAN.md — Dense sortable dashboard, honest link labels, escalating health strip
 
 **UI hint**: yes
 
@@ -113,7 +113,29 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|-----------------|--------|-----------|
-| 1. Foundation & First Signal | 5/6 | In Progress|  |
+| 1. Foundation & First Signal | 6/6 | Complete    | 2026-08-13 |
 | 2. Cost-Gated LLM Enrichment | 0/TBD | Not started | - |
 | 3. Source Breadth | 0/TBD | Not started | - |
 | 4. Autonomous Daily Scheduling | 0/TBD | Not started | - |
+
+## Backlog
+
+Deferred, non-blocking items surfaced during phase work. Not tied to a milestone gate.
+
+### BL-01: WR-01 — Score-stage failures invisible in health strip (+ partial-commit-on-failure)
+
+**Source:** Phase 1 code review (`01-REVIEW.md`), deferred at 2026-08-13 phase close.
+**Severity:** Warning (non-blocking — SC4 covers *collector* failure, which is flagged correctly).
+**Detail:** `techtrend/server/health.py` only queries `stage LIKE 'collect:%'`; a failed `score` stage is not escalated, and a mid-loop scoring exception can commit a partial `scores` table.
+
+### BL-02: WR-04 — GitHub discovery only isolates HTTPStatusError, not TransportError
+
+**Source:** Phase 1 code review (`01-REVIEW.md`), deferred at 2026-08-13 phase close.
+**Severity:** Warning (non-blocking).
+**Detail:** `techtrend/collectors/github.py` (~lines 172, 215, 295) catches only `httpx.HTTPStatusError`; a transient DNS/timeout blip during discovery fails the entire `collect:github` stage instead of degrading gracefully.
+
+### BL-03: WR-05 — Backfill holds one long-lived write transaction across the per-repo loop
+
+**Source:** Phase 1 code review (`01-REVIEW.md`), deferred at 2026-08-13 phase close.
+**Severity:** Warning (non-blocking — crash-resilience within a single run).
+**Detail:** `techtrend/collectors/backfill.py` wraps the whole per-repo loop in one write transaction, so an interrupted run loses all progress rather than committing entities already completed.

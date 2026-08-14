@@ -18,7 +18,7 @@
 ### Collection
 
 - [x] **COLL-01**: System collects repository star counts and release events from GitHub
-- [ ] **COLL-02**: System backfills GitHub historical star data on first run, so velocity ranking works on day one without waiting for snapshots to accumulate
+- [x] **COLL-02**: System backfills GitHub historical star data on first run, so velocity ranking works on day one without waiting for snapshots to accumulate
 - [ ] **COLL-03**: System collects stories and points from the Hacker News Algolia API
 - [ ] **COLL-04**: System collects package download counts from npm and PyPI
 - [ ] **COLL-05**: System collects vendor release notes from configured RSS/Atom changelog feeds
@@ -48,10 +48,10 @@
 
 - [x] **DASH-01**: User can view ranked items in a local web dashboard
 - [ ] **DASH-02**: User can browse items filtered by section
-- [ ] **DASH-03**: User can sort items by velocity score
+- [x] **DASH-03**: User can sort items by velocity score
 - [x] **DASH-04**: User can click through from any item to its original source
 - [x] **DASH-05**: User can reach the official docs / getting-started page for each tracked tool
-- [ ] **DASH-06**: Dashboard displays when data was last successfully refreshed
+- [x] **DASH-06**: Dashboard displays when data was last successfully refreshed
 
 ### Scheduling
 
@@ -61,7 +61,7 @@
 ### Health
 
 - [x] **HEALTH-01**: System records per-source success/failure and item counts for every run
-- [ ] **HEALTH-02**: User can see when a source has stopped returning data, rather than discovering a dead collector weeks later
+- [x] **HEALTH-02**: User can see when a source has stopped returning data, rather than discovering a dead collector weeks later
 
 ---
 

@@ -2,43 +2,43 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 01
-current_phase_name: foundation-first-signal-github-scored-and-visible
-status: executing
-stopped_at: Completed 01-05-PLAN.md
-last_updated: "2026-07-19T22:09:38.417Z"
-last_activity: 2026-07-19
-last_activity_desc: Phase 01 execution resumed (wave continue)
+current_phase: 2
+current_phase_name: Cost-Gated LLM Enrichment
+status: planning
+stopped_at: Phase 01 complete and verified; ready to plan Phase 2
+last_updated: "2026-08-14T01:30:31.080Z"
+last_activity: 2026-08-13
+last_activity_desc: Phase 01 complete, transitioned to Phase 2
 progress:
-  total_phases: 1
-  completed_phases: 0
+  total_phases: 4
+  completed_phases: 1
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-19)
+See: .planning/PROJECT.md (updated 2026-08-13)
 
 **Core value:** Open it once a day and know, in five minutes, what is actually gaining traction in AI coding — without scrolling social feeds and without missing the thing that matters.
-**Current focus:** Phase 01 — foundation-first-signal-github-scored-and-visible
+**Current focus:** Phase 2 — Cost-Gated LLM Enrichment
 
 ## Current Position
 
-Phase: 01 (foundation-first-signal-github-scored-and-visible) — EXECUTING
-Plan: 6 of 6
-Status: Ready to execute
-Last activity: 2026-07-19 — Phase 01 execution resumed (wave continue)
+Phase: 2 — Cost-Gated LLM Enrichment
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-08-13 — Phase 01 complete, transitioned to Phase 2
 
-Progress: [████████░░] 83%
+Progress: [█████░░░░░] Phase 1 of 4 complete (all 6 plans)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0
+- Total plans completed: 6
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -46,7 +46,7 @@ Progress: [████████░░] 83%
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01 | 6 | - | - |
 
 **Recent Trend:**
 
@@ -94,18 +94,25 @@ None yet.
 
 ### Blockers/Concerns
 
-None yet.
+- ⚠️ [Phase 1 → Backlog] WR-01: score-stage failures are invisible in the health strip (health.py only checks `collect:%`), and a mid-loop scoring exception can commit a partial `scores` table. Non-blocking; tracked as BL-01.
+- ⚠️ [Phase 1 → Backlog] WR-04: GitHub discovery catches only `HTTPStatusError`, not `httpx.TransportError`, so a transient DNS/timeout blip fails the whole `collect:github` stage. Non-blocking; tracked as BL-02.
+- ⚠️ [Phase 1 → Backlog] WR-05: backfill holds one long-lived write transaction across the per-repo loop, so an interrupted run loses all progress. Non-blocking; tracked as BL-03.
 
 ## Deferred Items
 
-Items acknowledged and carried forward from previous milestone close:
+Items acknowledged and carried forward from phase/milestone close:
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| *(none)* | | | |
+| UAT (human) | UI-SPEC visual token compliance — browser glance (01-02 D7) | Deferred | 2026-08-13 |
+| UAT (token) | Live GitHub ingest happy-path — needs user's GITHUB_TOKEN (01-03 D9) | Deferred | 2026-08-13 |
+| UAT (token) | Backfill happy-path — needs user's GITHUB_TOKEN (01-05 D7) | Deferred | 2026-08-13 |
+| UAT (browser) | E3 sort-header error surfacing — real-browser offline test (01-06 D8) | Deferred | 2026-08-13 |
+| UAT (design) | Visual density at real row counts — D-08a, no populated state yet (01-06 D9) | Deferred | 2026-08-13 |
+| UAT (browser) | DB-unreadable graceful-degradation copy — repeat vs renamed real DB (01-06 D10) | Deferred | 2026-08-13 |
 
 ## Session Continuity
 
-Last session: 2026-07-19T22:09:38.400Z
-Stopped at: Completed 01-05-PLAN.md
+Last session: 2026-08-13
+Stopped at: Phase 1 complete and verified (passed), ready to plan Phase 2
 Resume file: None

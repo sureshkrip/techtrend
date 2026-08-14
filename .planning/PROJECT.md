@@ -12,18 +12,18 @@ Open it once a day and know, in five minutes, what is actually gaining traction 
 
 ### Validated
 
-(None yet — ship to validate)
+- ✓ Rank by velocity/momentum, not absolute counts — Phase 1 (floor-before-Wilson scorer, unit-verified; a small fast-gaining repo outranks a large flat one)
+- ✓ Each tracked tool links to its official docs / getting-started — Phase 1 (docs-link fallback chain: homepage → README scan → honest "repo" label)
+- ✓ Local web dashboard with sort-by-velocity and click-through to source — Phase 1 (FastAPI + Jinja2 + htmx; browse-by-section still Active, pending Phase 2 sections)
+- ✓ Deterministic pre-ranking gate ahead of any LLM spend — Phase 1 (scorer + absolute floor gate the pipeline before enrichment exists)
 
 ### Active
 
-- [ ] Collect items daily from multiple sources (GitHub, Hacker News, vendor changelogs, package registries, RSS)
-- [ ] Rank by velocity/momentum, not absolute counts — a 900-star repo gaining 400/week outranks a dead 40k-star repo
-- [ ] LLM summarizes each surviving item into a two-line "what this is / why it matters"
-- [ ] LLM auto-assigns each item to exactly one of seven sections
-- [ ] Local web dashboard: browse by section, sort by velocity, click through to source
-- [ ] Each tracked tool links to its official docs / getting-started
-- [ ] Runs on a daily schedule so the dashboard is current when opened
-- [ ] Deterministic pre-ranking gates which items reach the LLM (cost control, configurable threshold)
+- [ ] Collect items daily from multiple sources (GitHub live in Phase 1; Hacker News, vendor changelogs, package registries, RSS in Phase 3)
+- [ ] LLM summarizes each surviving item into a two-line "what this is / why it matters" (Phase 2)
+- [ ] LLM auto-assigns each item to exactly one of seven sections (Phase 2)
+- [ ] Dashboard browse by section (Phase 2 — needs LLM section assignment)
+- [ ] Runs on a daily schedule so the dashboard is current when opened (Phase 4)
 
 ### Out of Scope
 
@@ -72,13 +72,15 @@ Taxonomy test: a new item should have exactly one obvious home. Revisit if class
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Rank by velocity, not absolute popularity | Absolute star counts measure history, not current traction; a dead 40k-star repo is noise. Momentum is the actual signal. Baked into core, not bolted on. | — Pending |
-| Seven fixed sections as v1 taxonomy | Clear boundaries; each item has one obvious home. Broad enough to cover the space, narrow enough to be meaningful. | — Pending |
-| Medium deprioritized as a source | No real API, hidden engagement metrics, heavily SEO-farmed in this domain. HN/GitHub/Reddit carry far more signal per unit of effort. | — Pending |
-| Local web dashboard over markdown or CLI | Browsing, sorting by velocity, and clicking through to sources are the primary interactions; a dashboard fits them best despite higher build cost. | — Pending |
-| LLM summarizes only items clearing a ranking threshold | Summarizing 150–300 items/day is disproportionately expensive for the same readable output. Threshold is config, not architecture. | — Pending |
-| Stack deferred to research | No existing constraints or codebase to honor; let current ecosystem evidence decide. | — Pending |
-| Scheduled daily pull (not manual refresh) | The value is the dashboard being current when opened, without the user remembering to trigger it. | — Pending |
+| Rank by velocity, not absolute popularity | Absolute star counts measure history, not current traction; a dead 40k-star repo is noise. Momentum is the actual signal. Baked into core, not bolted on. | ✓ Implemented Phase 1 — floor-before-Wilson scorer, unit-verified at the load-bearing boundary |
+| Seven fixed sections as v1 taxonomy | Clear boundaries; each item has one obvious home. Broad enough to cover the space, narrow enough to be meaningful. | — Pending (Phase 2 LLM section assignment) |
+| Medium deprioritized as a source | No real API, hidden engagement metrics, heavily SEO-farmed in this domain. HN/GitHub/Reddit carry far more signal per unit of effort. | — Pending (Phase 3 sources) |
+| Local web dashboard over markdown or CLI | Browsing, sorting by velocity, and clicking through to sources are the primary interactions; a dashboard fits them best despite higher build cost. | ✓ Implemented Phase 1 — FastAPI + Jinja2 + htmx dashboard live |
+| LLM summarizes only items clearing a ranking threshold | Summarizing 150–300 items/day is disproportionately expensive for the same readable output. Threshold is config, not architecture. | — Pending (Phase 2 enrichment) |
+| Stack deferred to research | No existing constraints or codebase to honor; let current ecosystem evidence decide. | ✓ Resolved — Python 3.12 + SQLite (WAL) + FastAPI/Jinja2/htmx + httpx/hishel/tenacity (see CLAUDE.md stack) |
+| Scheduled daily pull (not manual refresh) | The value is the dashboard being current when opened, without the user remembering to trigger it. | — Pending (Phase 4) |
+| D-08a: honest day-one empty state over a faked ranked list | On day one every entity has < 2 days of history and falls below the window-gain floor, so `query_ranked` legitimately returns 0 rows. Rather than fabricate a ranking or look broken, the dashboard renders a truthful "still building history" state. | ✓ Implemented Phase 1 — live-verified against real DB (106 entities, 0 eligible) |
+| D-16: 4-tier health-strip escalation for source freshness/failure | A dead collector must be visible without digging into logs; escalate by staleness and zero-items-vs-trailing-average. | ✓ Implemented Phase 1 — `health.py`, 11+ tier-boundary tests, live-verified |
 
 ## Evolution
 
@@ -98,4 +100,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-19 after initialization*
+*Last updated: 2026-08-13 after Phase 1*
