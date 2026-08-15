@@ -14,15 +14,16 @@ Open it once a day and know, in five minutes, what is actually gaining traction 
 
 - ✓ Rank by velocity/momentum, not absolute counts — Phase 1 (floor-before-Wilson scorer, unit-verified; a small fast-gaining repo outranks a large flat one)
 - ✓ Each tracked tool links to its official docs / getting-started — Phase 1 (docs-link fallback chain: homepage → README scan → honest "repo" label)
-- ✓ Local web dashboard with sort-by-velocity and click-through to source — Phase 1 (FastAPI + Jinja2 + htmx; browse-by-section still Active, pending Phase 2 sections)
+- ✓ Local web dashboard with sort-by-velocity and click-through to source — Phase 1 (FastAPI + Jinja2 + htmx)
 - ✓ Deterministic pre-ranking gate ahead of any LLM spend — Phase 1 (scorer + absolute floor gate the pipeline before enrichment exists)
+- ✓ LLM summarizes each surviving item into a two-line "what this is / why it matters" — Phase 2 (grounded Haiku 4.5 call; refusal→None + empty-grounding skip guard against fabrication)
+- ✓ LLM auto-assigns each item to exactly one of seven sections — Phase 2 (per-request StrEnum constrains output to the seven ids)
+- ✓ Dashboard browse by section — Phase 2 (left-nav sidebar with live counts; sort + section filters persist together across htmx links)
+- ✓ LLM spend bounded per run — Phase 2 (hard per-run cap as SQL LIMIT on the candidate set + content-hash cache skip; cap validated > 0 after CR-01)
 
 ### Active
 
 - [ ] Collect items daily from multiple sources (GitHub live in Phase 1; Hacker News, vendor changelogs, package registries, RSS in Phase 3)
-- [ ] LLM summarizes each surviving item into a two-line "what this is / why it matters" (Phase 2)
-- [ ] LLM auto-assigns each item to exactly one of seven sections (Phase 2)
-- [ ] Dashboard browse by section (Phase 2 — needs LLM section assignment)
 - [ ] Runs on a daily schedule so the dashboard is current when opened (Phase 4)
 
 ### Out of Scope
@@ -73,10 +74,13 @@ Taxonomy test: a new item should have exactly one obvious home. Revisit if class
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | Rank by velocity, not absolute popularity | Absolute star counts measure history, not current traction; a dead 40k-star repo is noise. Momentum is the actual signal. Baked into core, not bolted on. | ✓ Implemented Phase 1 — floor-before-Wilson scorer, unit-verified at the load-bearing boundary |
-| Seven fixed sections as v1 taxonomy | Clear boundaries; each item has one obvious home. Broad enough to cover the space, narrow enough to be meaningful. | — Pending (Phase 2 LLM section assignment) |
+| Seven fixed sections as v1 taxonomy | Clear boundaries; each item has one obvious home. Broad enough to cover the space, narrow enough to be meaningful. | ✓ Implemented Phase 2 — per-request StrEnum enforces one-of-seven at the model boundary |
 | Medium deprioritized as a source | No real API, hidden engagement metrics, heavily SEO-farmed in this domain. HN/GitHub/Reddit carry far more signal per unit of effort. | — Pending (Phase 3 sources) |
 | Local web dashboard over markdown or CLI | Browsing, sorting by velocity, and clicking through to sources are the primary interactions; a dashboard fits them best despite higher build cost. | ✓ Implemented Phase 1 — FastAPI + Jinja2 + htmx dashboard live |
-| LLM summarizes only items clearing a ranking threshold | Summarizing 150–300 items/day is disproportionately expensive for the same readable output. Threshold is config, not architecture. | — Pending (Phase 2 enrichment) |
+| LLM summarizes only items clearing a ranking threshold | Summarizing 150–300 items/day is disproportionately expensive for the same readable output. Threshold is config, not architecture. | ✓ Implemented Phase 2 — cost gate reads the `eligible` seam; hard cap as SQL LIMIT bounds spend to a handful of Haiku calls/run |
+| D-08b: grounded-only enrichment, never parametric knowledge | A summary must reflect the tool's real fetched README/changelog, not a plausible-sounding fabrication from the model's training. Empty grounding → skip the call entirely (tombstone); refusal → None. | ✓ Implemented Phase 2 — mechanism verified in code + unit tests; live LLM-output quality confirmed via UAT |
+| D-10: enrichment failure never costs visibility into ranked data | The dashboard's job is showing ranked momentum; an LLM/fetch failure must never drop an already-ranked row. LEFT JOIN + honest fallbacks ("summary pending" / "source unavailable"). | ✓ Implemented Phase 2 — LEFT JOIN keeps every eligible row; per-candidate try/except isolates failures |
+| Claude Haiku 4.5 for summarize + classify | Two-line summary + pick-one-of-seven is a short, structured, high-volume call — the cheapest model clearing the quality bar, per the cost-bounding constraint. | ✓ Implemented Phase 2 — `anthropic==0.122.0`, model pinned in config |
 | Stack deferred to research | No existing constraints or codebase to honor; let current ecosystem evidence decide. | ✓ Resolved — Python 3.12 + SQLite (WAL) + FastAPI/Jinja2/htmx + httpx/hishel/tenacity (see CLAUDE.md stack) |
 | Scheduled daily pull (not manual refresh) | The value is the dashboard being current when opened, without the user remembering to trigger it. | — Pending (Phase 4) |
 | D-08a: honest day-one empty state over a faked ranked list | On day one every entity has < 2 days of history and falls below the window-gain floor, so `query_ranked` legitimately returns 0 rows. Rather than fabricate a ranking or look broken, the dashboard renders a truthful "still building history" state. | ✓ Implemented Phase 1 — live-verified against real DB (106 entities, 0 eligible) |
@@ -100,4 +104,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-13 after Phase 1*
+*Last updated: 2026-08-14 after Phase 2*

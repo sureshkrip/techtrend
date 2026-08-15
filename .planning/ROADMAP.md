@@ -16,7 +16,7 @@ This sequencing intentionally departs from a purely horizontal build order (sche
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation & First Signal — GitHub, Scored and Visible** - Schema, backfilled GitHub collector, confidence-bounded velocity scorer, and a minimal dashboard — real ranked data, visible, before any LLM spend (completed 2026-08-13)
-- [ ] **Phase 2: Cost-Gated LLM Enrichment** - Gate + hard cap + LLM summarize/classify into the seven sections, cached by content hash, never losing ranked data on failure
+- [x] **Phase 2: Cost-Gated LLM Enrichment** - Gate + hard cap + LLM summarize/classify into the seven sections, cached by content hash, never losing ranked data on failure (completed 2026-08-14)
 - [ ] **Phase 3: Source Breadth — Discourse, Downloads & Changelogs** - Hacker News, npm/PyPI, and vendor changelogs added through the existing collector plugin interface
 - [ ] **Phase 4: Autonomous Daily Scheduling** - Windows Task Scheduler wired with wake/missed-run settings so the pipeline runs unattended every day
 
@@ -133,7 +133,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|-----------------|--------|-----------|
 | 1. Foundation & First Signal | 6/6 | Complete    | 2026-08-13 |
-| 2. Cost-Gated LLM Enrichment | 5/5 | In Progress|  |
+| 2. Cost-Gated LLM Enrichment | 5/5 | Complete    | 2026-08-14 |
 | 3. Source Breadth | 0/TBD | Not started | - |
 | 4. Autonomous Daily Scheduling | 0/TBD | Not started | - |
 
