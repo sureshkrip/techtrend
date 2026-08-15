@@ -112,6 +112,22 @@ def test_cap_limits_candidate_set(tmp_path):
     conn.close()
 
 
+def test_enrichment_cap_rejects_non_positive():
+    # CR-01: a non-positive cap would defeat SC1's hard cost cap -- SQLite
+    # treats a negative LIMIT as unbounded, so the guard must live in config
+    # validation, not downstream. Zero is equally invalid (no work, but a
+    # bad edit shouldn't silently disable enrichment either).
+    import pytest
+    from pydantic import ValidationError
+
+    from techtrend.config import Tunables
+
+    Tunables(enrichment_cap=1)  # lower bound is valid
+    for bad in (0, -1, -15):
+        with pytest.raises(ValidationError):
+            Tunables(enrichment_cap=bad)
+
+
 # --- DATA-04/D-09/SC4: unchanged content_hash -> LLM never re-called ---
 
 

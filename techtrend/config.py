@@ -52,7 +52,10 @@ class Tunables(BaseModel):
     # Hard per-run cap on enrichment LLM calls, independent of ranking
     # threshold (ENR-02, D-04). Applied to the candidate SET (which entities
     # are even fetched), not just successful LLM calls -- see A6.
-    enrichment_cap: int = 15
+    # gt=0: a non-positive value would defeat the cost cap -- SQLite treats a
+    # negative LIMIT as "no limit", turning the phase's hard budget into an
+    # unbounded run on a bad config edit (CR-01).
+    enrichment_cap: int = Field(default=15, gt=0)
     # README intro truncation cap in characters, before the first H2+ heading
     # (D-07).
     grounding_char_cap: int = 2000
