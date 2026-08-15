@@ -75,7 +75,7 @@ Plans:
   3. A summary for a brand-new or obscure tool reflects its actual fetched README/changelog/thread text, not a plausible-sounding fabrication from the model's own training knowledge.
   4. Re-running the pipeline on unchanged items never re-calls the LLM (same content hash hits the cache), and if enrichment fails for an item, that item still displays ranked in the dashboard without a summary rather than disappearing.
 
-**Plans**: 4/5 plans executed
+**Plans**: 5/5 plans executed
 
 Plans:
 **Wave 1**
@@ -93,7 +93,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3)*
 
-- [ ] 02-05-PLAN.md — Dashboard section browsing: sidebar + counts, summary cell + low-confidence flag, LEFT JOIN so failures never drop ranked rows
+- [x] 02-05-PLAN.md — Dashboard section browsing: sidebar + counts, summary cell + low-confidence flag, LEFT JOIN so failures never drop ranked rows
 
 **UI hint**: yes
 
@@ -133,7 +133,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|-----------------|--------|-----------|
 | 1. Foundation & First Signal | 6/6 | Complete    | 2026-08-13 |
-| 2. Cost-Gated LLM Enrichment | 4/5 | In Progress|  |
+| 2. Cost-Gated LLM Enrichment | 5/5 | In Progress|  |
 | 3. Source Breadth | 0/TBD | Not started | - |
 | 4. Autonomous Daily Scheduling | 0/TBD | Not started | - |
 

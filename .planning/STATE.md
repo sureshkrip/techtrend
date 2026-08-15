@@ -4,16 +4,16 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 02
 current_phase_name: cost-gated-llm-enrichment
-status: executing
-stopped_at: Completed 02-04-PLAN.md
-last_updated: "2026-08-14T23:11:46.157Z"
+status: verifying
+stopped_at: Completed 02-05-PLAN.md
+last_updated: "2026-08-15T02:11:01.242Z"
 last_activity: 2026-08-14
 last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 11
-  completed_plans: 10
+  completed_plans: 11
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-08-13)
 
 Phase: 02 (cost-gated-llm-enrichment) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-08-14 — Phase 02 execution started
 
-Progress: [█████████░] 91%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -67,6 +67,7 @@ Progress: [█████████░] 91%
 | Phase 02 P03 | 20min | 2 tasks | 2 files |
 | Phase 02 P02 | 12min | 3 tasks | 4 files |
 | Phase 02 P04 | 8min | 2 tasks | 3 files |
+| Phase 02 P05 | 15min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -103,6 +104,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 02-04: select_candidates/run_enrichment implemented against the committed Wave 0 test contract (injectable fetch_grounding_fn/content_hash_fn/llm_call_fn), not the plan prose's unconditional client-construction description
 - [Phase ?]: 02-04: LLM refusal writes the same fetch_failed tombstone shape (content_hash NULL) as a grounding fetch failure, preserving the schema invariant and retrying the LLM on the same content next run
 - [Phase ?]: 02-04: real GitHub/Anthropic clients are built lazily inside run_enrichment only when the candidate set is non-empty, so a zero-candidate run needs no GITHUB_TOKEN/ANTHROPIC_API_KEY
+- [Phase ?]: 02-05: query_ranked LEFT JOINs enrichments on the MAX(computed_at) idiom + bound :section param; query_section_counts pinned to the same eligible/current-version/MAX(run_date) seam, excluding null sections (D-13)
+- [Phase ?]: 02-05: every htmx link (sidebar + sort headers) carries both sort and section, reusing the identical hx-target/hx-swap/hx-push-url/hx-indicator set, so neither control resets the other (Pitfall #5)
+- [Phase ?]: 02-05: Task 3 human-verify checkpoint structurally accepted per user instruction (135/135 automated + acceptance-criteria greps + static template review); live visual/anti-fabrication walkthrough deferred as UAT, mirroring Phase 1 precedent
 
 ### Pending Todos
 
@@ -126,9 +130,10 @@ Items acknowledged and carried forward from phase/milestone close:
 | UAT (browser) | E3 sort-header error surfacing — real-browser offline test (01-06 D8) | Deferred | 2026-08-13 |
 | UAT (design) | Visual density at real row counts — D-08a, no populated state yet (01-06 D9) | Deferred | 2026-08-13 |
 | UAT (browser) | DB-unreadable graceful-degradation copy — repeat vs renamed real DB (01-06 D10) | Deferred | 2026-08-13 |
+| UAT (token) | Live section browsing + anti-fabrication summary spot-check — needs ANTHROPIC_API_KEY + a fresh collect/score/enrich run against real data (02-05 Task 3) | Deferred | 2026-08-15 |
 
 ## Session Continuity
 
-Last session: 2026-08-14T23:11:46.122Z
-Stopped at: Completed 02-04-PLAN.md
+Last session: 2026-08-15T02:11:01.199Z
+Stopped at: Completed 02-05-PLAN.md
 Resume file: None

@@ -47,7 +47,7 @@
 ### Dashboard
 
 - [x] **DASH-01**: User can view ranked items in a local web dashboard
-- [ ] **DASH-02**: User can browse items filtered by section
+- [x] **DASH-02**: User can browse items filtered by section
 - [x] **DASH-03**: User can sort items by velocity score
 - [x] **DASH-04**: User can click through from any item to its original source
 - [x] **DASH-05**: User can reach the official docs / getting-started page for each tracked tool
