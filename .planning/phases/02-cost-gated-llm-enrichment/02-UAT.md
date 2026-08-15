@@ -1,23 +1,14 @@
 ---
-status: testing
+status: complete
 phase: 02-cost-gated-llm-enrichment
 source: [02-VERIFICATION.md]
 started: 2026-08-15T00:00:00Z
-updated: 2026-08-15T00:00:00Z
+updated: 2026-08-15T02:43:08Z
 ---
 
 ## Current Test
 
-number: 1
-name: Live section browsing + anti-fabrication summary spot-check
-expected: |
-  With ANTHROPIC_API_KEY configured and a fresh collect/score/enrich run completed:
-  sidebar counts match table rows per section; sort and section filters persist
-  together across htmx links; a low-confidence flag is spottable at a glance;
-  2-3 real summaries are each traceable to their repo's actual README intro (no
-  fabrication); unenriched/failed rows show honest fallbacks ("summary pending" /
-  "source unavailable") and are never dropped from the "All" view.
-awaiting: user response
+[testing complete]
 
 ## Tests
 
@@ -35,14 +26,14 @@ expected: |
     (SC3 anti-fabrication); flag anything unsupported.
   - At least one low-confidence filing carries a visually spottable flag.
   - Unenriched/failed rows render "summary pending" / "source unavailable" and still appear.
-result: [pending]
+result: pass
 
 ## Summary
 
 total: 1
-passed: 0
+passed: 1
 issues: 0
-pending: 1
+pending: 0
 skipped: 0
 blocked: 0
 
