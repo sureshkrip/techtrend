@@ -1,6 +1,7 @@
 # TechTrend dashboard image. uv-managed, Python 3.13.
-# Serves the read-only FastAPI dashboard; the daily ingest+score job runs as a
-# Coolify Scheduled Task inside this same container (shares the /data volume).
+# Serves the read-only FastAPI dashboard; the daily collect->score->enrich
+# pipeline runs as a Coolify Scheduled Task inside this same container (shares
+# the /data volume).
 FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
 
 WORKDIR /app
@@ -19,7 +20,7 @@ RUN uv sync --frozen --no-install-project --no-dev
 COPY . .
 RUN uv sync --frozen --no-dev
 
-# Put the venv on PATH so `uvicorn` / `python -m techtrend.ingest` resolve
+# Put the venv on PATH so `uvicorn` / `python -m techtrend.daily` resolve
 # directly (the Coolify scheduled task calls the latter).
 ENV PATH="/app/.venv/bin:$PATH"
 
