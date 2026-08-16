@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-08-14)
 Phase: 3 — Source Breadth — Discourse, Downloads & Changelogs
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-08-14 — Phase 02 complete, transitioned to Phase 3
+Last activity: 2026-08-16 — Quick task 260816-lkt: added `python -m techtrend.daily` full-pipeline entrypoint
 
 Progress: [██████████] 100%
 
@@ -118,6 +118,12 @@ None yet.
 - ⚠️ [Phase 1 → Backlog] WR-01: score-stage failures are invisible in the health strip (health.py only checks `collect:%`), and a mid-loop scoring exception can commit a partial `scores` table. Non-blocking; tracked as BL-01.
 - ⚠️ [Phase 1 → Backlog] WR-04: GitHub discovery catches only `HTTPStatusError`, not `httpx.TransportError`, so a transient DNS/timeout blip fails the whole `collect:github` stage. Non-blocking; tracked as BL-02.
 - ⚠️ [Phase 1 → Backlog] WR-05: backfill holds one long-lived write transaction across the per-repo loop, so an interrupted run loses all progress. Non-blocking; tracked as BL-03.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260816-lkt | Single daily-pipeline entrypoint (`python -m techtrend.daily`) chaining collect→score→enrich with fail-fast exit-code propagation; Dockerfile scheduled-task guidance updated | 2026-08-16 | cbfb874 | [260816-lkt-add-a-single-daily-pipeline-entrypoint-t](./quick/260816-lkt-add-a-single-daily-pipeline-entrypoint-t/) |
 
 ## Deferred Items
 
