@@ -6,11 +6,11 @@ current_phase: 3
 current_phase_name: Source Breadth — Discourse, Downloads & Changelogs
 status: planning
 stopped_at: Completed 02-05-PLAN.md
-last_updated: "2026-08-15T02:49:31.649Z"
-last_activity: 2026-08-14
-last_activity_desc: Phase 02 complete, transitioned to Phase 3
+last_updated: "2026-08-17T03:14:46.102Z"
+last_activity: 2026-08-16
+last_activity_desc: "Quick task 260816-lkt: added `python -m techtrend.daily` full-pipeline entrypoint"
 progress:
-  total_phases: 2
+  total_phases: 3
   completed_phases: 2
   total_plans: 11
   completed_plans: 11
@@ -124,6 +124,7 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260816-lkt | Single daily-pipeline entrypoint (`python -m techtrend.daily`) chaining collect→score→enrich with fail-fast exit-code propagation; Dockerfile scheduled-task guidance updated | 2026-08-16 | cbfb874 | [260816-lkt-add-a-single-daily-pipeline-entrypoint-t](./quick/260816-lkt-add-a-single-daily-pipeline-entrypoint-t/) |
+| 2 | Add README.md with setup/run/deploy instructions (verified commands) | 2026-08-17 | 2954025 | — |
 
 ## Deferred Items
 
