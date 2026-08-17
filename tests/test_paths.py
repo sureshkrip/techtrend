@@ -38,14 +38,15 @@ def test_resolve_bare_default_when_nothing_set(monkeypatch):
 
 def test_data_dir_relocates_runtime_state_but_not_config(monkeypatch):
     """With TECHTREND_DATA_DIR set, the module-level constants that back the
-    DB/cache/log defaults all live under it; CONFIG_PATH does not.
+    cache/log defaults live under it; CONFIG_PATH does not. Storage itself is
+    server-side PostgreSQL (see techtrend/db/connection.py) and has no
+    filesystem path to relocate.
     """
     monkeypatch.setenv("TECHTREND_DATA_DIR", "/data")
-    for var in ("TECHTREND_DB", "TECHTREND_CACHE_DIR", "TECHTREND_LOG_FILE", "TECHTREND_CONFIG"):
+    for var in ("TECHTREND_CACHE_DIR", "TECHTREND_LOG_FILE", "TECHTREND_CONFIG"):
         monkeypatch.delenv(var, raising=False)
     try:
         importlib.reload(paths)
-        assert paths.DB_PATH == Path("/data") / "techtrend.db"
         assert paths.CACHE_DIR == Path("/data") / ".hishel"
         assert paths.CACHE_DB == Path("/data") / ".hishel" / "github.db"
         assert paths.LOG_FILE == Path("/data") / "logs" / "techtrend.log"
