@@ -65,7 +65,7 @@ def test_resolve_entity_same_identity_key_yields_one_entities_row(db):
 
     count = db.execute(
         "SELECT COUNT(*) FROM entities WHERE source = 'github' AND source_native_id = '741883704'"
-    ).fetchone()[0]
+    ).fetchone()["count"]
     assert count == 1
 
 
@@ -86,7 +86,7 @@ def test_resolve_entity_null_source_native_id_rejected_without_error(db):
     db.commit()
 
     assert result is None
-    assert db.execute("SELECT COUNT(*) FROM entities").fetchone()[0] == 0
+    assert db.execute("SELECT COUNT(*) FROM entities").fetchone()["count"] == 0
 
 
 def test_resolve_entity_empty_source_native_id_rejected_without_error(db):
@@ -94,14 +94,14 @@ def test_resolve_entity_empty_source_native_id_rejected_without_error(db):
     db.commit()
 
     assert result is None
-    assert db.execute("SELECT COUNT(*) FROM entities").fetchone()[0] == 0
+    assert db.execute("SELECT COUNT(*) FROM entities").fetchone()["count"] == 0
 
 
-def test_resolve_entity_order_independent(db, tmp_path):
+def test_resolve_entity_order_independent(db, second_db):
     """Resolving the same item set in reversed order produces an identical
     entities table by (source, source_native_id, full_name).
     """
-    from techtrend.db.connection import connect, init_db
+    reversed_db = second_db
 
     items = [
         _item(source_native_id="1", full_name="a/one"),
@@ -113,8 +113,6 @@ def test_resolve_entity_order_independent(db, tmp_path):
         resolve_entity(db, item, NOW)
     db.commit()
 
-    reversed_db = connect(tmp_path / "reversed.db")
-    init_db(reversed_db)
     for item in reversed(items):
         resolve_entity(reversed_db, item, NOW)
     reversed_db.commit()
@@ -127,7 +125,6 @@ def test_resolve_entity_order_independent(db, tmp_path):
         (r["source"], r["source_native_id"], r["full_name"])
         for r in reversed_db.execute("SELECT source, source_native_id, full_name FROM entities")
     )
-    reversed_db.close()
 
     assert forward_rows == reversed_rows
 
@@ -146,7 +143,7 @@ def test_write_snapshot_upsert_replaces_same_day_value(db):
     db.commit()
 
     rows = db.execute(
-        "SELECT metric_value FROM snapshots WHERE entity_id = ? AND collected_at = '2026-07-19'"
+        "SELECT metric_value FROM snapshots WHERE entity_id = %s AND collected_at = '2026-07-19'"
         " AND metric_name = 'stars'",
         (entity_id,),
     ).fetchall()
@@ -171,7 +168,7 @@ def test_write_snapshot_upsert_also_updates_source_kind_on_conflict(db):
 
     row = db.execute(
         "SELECT metric_value, source_kind FROM snapshots"
-        " WHERE entity_id = ? AND collected_at = '2026-07-19' AND metric_name = 'stars'",
+        " WHERE entity_id = %s AND collected_at = '2026-07-19' AND metric_name = 'stars'",
         (entity_id,),
     ).fetchone()
     assert row["metric_value"] == 150
@@ -185,7 +182,7 @@ def test_write_snapshot_upsert_also_updates_source_kind_on_conflict(db):
 
     row = db.execute(
         "SELECT metric_value, source_kind FROM snapshots"
-        " WHERE entity_id = ? AND collected_at = '2026-07-19' AND metric_name = 'stars'",
+        " WHERE entity_id = %s AND collected_at = '2026-07-19' AND metric_name = 'stars'",
         (entity_id,),
     ).fetchone()
     assert row["metric_value"] == 200
@@ -201,7 +198,7 @@ def test_run_collection_empty_item_list_creates_zero_entities_but_writes_run_man
     fake = _FakeCollector("empty-source", [], lambda raw: _item())
     run_collection(db, date(2026, 7, 19), [fake])
 
-    assert db.execute("SELECT COUNT(*) FROM entities").fetchone()[0] == 0
+    assert db.execute("SELECT COUNT(*) FROM entities").fetchone()["count"] == 0
     manifest_rows = db.execute(
         "SELECT * FROM run_manifest WHERE stage = 'collect:empty-source'"
     ).fetchall()
@@ -228,5 +225,5 @@ def test_run_collection_twice_same_fixture_same_run_date_is_idempotent(db, githu
     run_collection(db, run_date, [fake])
     run_collection(db, run_date, [fake])
 
-    assert db.execute("SELECT COUNT(*) FROM entities").fetchone()[0] == 1
-    assert db.execute("SELECT COUNT(*) FROM snapshots").fetchone()[0] == 2  # stars + releases
+    assert db.execute("SELECT COUNT(*) FROM entities").fetchone()["count"] == 1
+    assert db.execute("SELECT COUNT(*) FROM snapshots").fetchone()["count"] == 2  # stars + releases

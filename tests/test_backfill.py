@@ -180,7 +180,9 @@ def _insert_entity(conn, native_id: str, full_name: str, backfill_status: str) -
         INSERT INTO entities (
             source, source_native_id, full_name, url, discovery_method,
             admitted_at, last_seen_at, backfill_status
-        ) VALUES ('github', :native_id, :full_name, :url, 'seed', :now, :now, :status)
+        ) VALUES (
+            'github', %(native_id)s, %(full_name)s, %(url)s, 'seed', %(now)s, %(now)s, %(status)s
+        )
         """,
         {
             "native_id": native_id,
@@ -191,7 +193,7 @@ def _insert_entity(conn, native_id: str, full_name: str, backfill_status: str) -
         },
     )
     row = conn.execute(
-        "SELECT id FROM entities WHERE source = 'github' AND source_native_id = ?",
+        "SELECT id FROM entities WHERE source = 'github' AND source_native_id = %s",
         (native_id,),
     ).fetchone()
     conn.commit()
@@ -265,7 +267,7 @@ def test_successful_backfill_writes_backfill_snapshots_and_status_complete(
 
     rows = conn.execute(
         "SELECT collected_at, metric_value, source_kind FROM snapshots "
-        "WHERE entity_id = ? AND source_kind = 'backfill' ORDER BY collected_at",
+        "WHERE entity_id = %s AND source_kind = 'backfill' ORDER BY collected_at",
         (entity_id,),
     ).fetchall()
     assert [dict(r) for r in rows] == [
@@ -274,7 +276,7 @@ def test_successful_backfill_writes_backfill_snapshots_and_status_complete(
     ]
 
     entity = conn.execute(
-        "SELECT backfill_status, backfilled_at FROM entities WHERE id = ?", (entity_id,)
+        "SELECT backfill_status, backfilled_at FROM entities WHERE id = %s", (entity_id,)
     ).fetchone()
     assert entity["backfill_status"] == "complete"
     assert entity["backfilled_at"] is not None
@@ -298,7 +300,7 @@ def test_rerunning_backfill_does_not_duplicate_snapshot_rows(db, config, monkeyp
     # status to genuinely re-exercise write_snapshot()'s upsert idempotency
     # with the same derived points, rather than trivially no-op-ing because
     # the entity is skipped.
-    conn.execute("UPDATE entities SET backfill_status = 'pending' WHERE id = ?", (entity_id,))
+    conn.execute("UPDATE entities SET backfill_status = 'pending' WHERE id = %s", (entity_id,))
     conn.commit()
 
     run_backfill(conn, object(), config, date(2026, 7, 19))
@@ -321,12 +323,12 @@ def test_blocked_outcome_sets_status_blocked_and_writes_zero_snapshots(db, confi
     run_backfill(conn, object(), config, date(2026, 7, 19))
 
     entity = conn.execute(
-        "SELECT backfill_status FROM entities WHERE id = ?", (entity_id,)
+        "SELECT backfill_status FROM entities WHERE id = %s", (entity_id,)
     ).fetchone()
     assert entity["backfill_status"] == "blocked"
 
     n = conn.execute(
-        "SELECT COUNT(*) AS n FROM snapshots WHERE entity_id = ? AND source_kind = 'backfill'",
+        "SELECT COUNT(*) AS n FROM snapshots WHERE entity_id = %s AND source_kind = 'backfill'",
         (entity_id,),
     ).fetchone()["n"]
     assert n == 0
@@ -381,7 +383,7 @@ def test_run_manifest_row_records_completed_blocked_failed_counts(db, config, mo
 
     row = conn.execute(
         "SELECT item_count, error_detail, status FROM run_manifest "
-        "WHERE run_date = ? AND stage = 'backfill:github'",
+        "WHERE run_date = %s AND stage = 'backfill:github'",
         ("2026-07-19",),
     ).fetchone()
     assert row is not None

@@ -9,7 +9,7 @@ ever consulted, and that ordering is asserted directly below, not just
 documented.
 
 No live network call -- snapshot series are constructed directly as rows in
-the `db` fixture's temp SQLite file (CLAUDE.md testing philosophy).
+the `db` fixture's ephemeral Postgres database (CLAUDE.md testing philosophy).
 """
 
 from datetime import date
@@ -27,8 +27,8 @@ def _insert_entity(conn, native_id, full_name=None, dormant=False):
             source, source_native_id, full_name, url, discovery_method,
             admitted_at, last_seen_at, dormant_at
         ) VALUES (
-            'github', :native_id, :full_name, :url, 'seed',
-            '2026-07-01T00:00:00Z', '2026-07-19T00:00:00Z', :dormant_at
+            'github', %(native_id)s, %(full_name)s, %(url)s, 'seed',
+            '2026-07-01T00:00:00Z', '2026-07-19T00:00:00Z', %(dormant_at)s
         )
         """,
         {
@@ -39,7 +39,7 @@ def _insert_entity(conn, native_id, full_name=None, dormant=False):
         },
     )
     return conn.execute(
-        "SELECT id FROM entities WHERE source_native_id = ?", (native_id,)
+        "SELECT id FROM entities WHERE source_native_id = %s", (native_id,)
     ).fetchone()["id"]
 
 
@@ -47,7 +47,7 @@ def _insert_snapshot(conn, entity_id, collected_at, value, source_kind="observed
     conn.execute(
         """
         INSERT INTO snapshots (entity_id, collected_at, metric_name, metric_value, source_kind)
-        VALUES (?, ?, 'stars', ?, ?)
+        VALUES (%s, %s, 'stars', %s, %s)
         """,
         (entity_id, collected_at, value, source_kind),
     )
@@ -176,7 +176,7 @@ def test_window_gain_non_monotonic_series_does_not_falsely_clear_the_floor(db):
     rescore_all(db, _config(floor=25), date(2026, 7, 19))
 
     row = db.execute(
-        "SELECT eligible, stars_gained FROM scores WHERE entity_id = ?", (entity_id,)
+        "SELECT eligible, stars_gained FROM scores WHERE entity_id = %s", (entity_id,)
     ).fetchone()
     assert row["stars_gained"] == -10
     assert row["eligible"] == 0
@@ -266,7 +266,7 @@ def test_entity_with_no_snapshots_is_ineligible(db):
 
     rescore_all(db, _config(), date(2026, 7, 19))
 
-    row = db.execute("SELECT eligible FROM scores WHERE entity_id = ?", (entity_id,)).fetchone()
+    row = db.execute("SELECT eligible FROM scores WHERE entity_id = %s", (entity_id,)).fetchone()
     assert row["eligible"] == 0
 
 
@@ -309,7 +309,7 @@ def test_score_versions_coexist(db):
         INSERT INTO scores (
             entity_id, run_date, score_version, stars_gained,
             window_days, wilson_lower_bound, eligible
-        ) VALUES (?, '2026-07-19', ?, 300, 6, 0.0625, 1)
+        ) VALUES (%s, '2026-07-19', %s, 300, 6, 0.0625, 1)
         """,
         (entity_id, other_version),
     )
@@ -318,10 +318,10 @@ def test_score_versions_coexist(db):
     rescore_all(db, _config(), date(2026, 7, 19))
 
     other_count = db.execute(
-        "SELECT COUNT(*) AS c FROM scores WHERE score_version = ?", (other_version,)
+        "SELECT COUNT(*) AS c FROM scores WHERE score_version = %s", (other_version,)
     ).fetchone()["c"]
     current_count = db.execute(
-        "SELECT COUNT(*) AS c FROM scores WHERE score_version = ?", (CURRENT_SCORE_VERSION,)
+        "SELECT COUNT(*) AS c FROM scores WHERE score_version = %s", (CURRENT_SCORE_VERSION,)
     ).fetchone()["c"]
 
     assert other_count == 1

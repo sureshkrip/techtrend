@@ -46,7 +46,7 @@ def _insert_entity(conn, native_id):
             source, source_native_id, full_name, url, discovery_method,
             admitted_at, last_seen_at
         ) VALUES (
-            'github', :native_id, :full_name, :url, 'seed',
+            'github', %(native_id)s, %(full_name)s, %(url)s, 'seed',
             '2026-07-01T00:00:00Z', '2026-07-19T00:00:00Z'
         )
         """,
@@ -57,7 +57,7 @@ def _insert_entity(conn, native_id):
         },
     )
     return conn.execute(
-        "SELECT id FROM entities WHERE source_native_id = ?", (native_id,)
+        "SELECT id FROM entities WHERE source_native_id = %s", (native_id,)
     ).fetchone()["id"]
 
 
@@ -67,7 +67,7 @@ def _insert_score(conn, entity_id, run_date_str, bound, score_version, eligible=
         INSERT INTO scores (
             entity_id, run_date, score_version, stars_gained,
             window_days, wilson_lower_bound, eligible
-        ) VALUES (?, ?, ?, 0, 7, ?, ?)
+        ) VALUES (%s, %s, %s, 0, 7, %s, %s)
         """,
         (entity_id, run_date_str, score_version, bound, eligible),
     )
@@ -136,7 +136,7 @@ def _insert_snapshot(conn, entity_id, collected_at, value):
     conn.execute(
         """
         INSERT INTO snapshots (entity_id, collected_at, metric_name, metric_value, source_kind)
-        VALUES (?, ?, 'stars', ?, 'observed')
+        VALUES (%s, %s, 'stars', %s, 'observed')
         """,
         (entity_id, collected_at, value),
     )
@@ -169,7 +169,7 @@ def test_rescore_all_preserves_prior_run_date_for_stability_comparison(db):
     run_dates = {
         row["run_date"]
         for row in db.execute(
-            "SELECT DISTINCT run_date FROM scores WHERE score_version = ?",
+            "SELECT DISTINCT run_date FROM scores WHERE score_version = %s",
             (CURRENT_SCORE_VERSION,),
         ).fetchall()
     }
@@ -184,29 +184,19 @@ def test_rescore_all_preserves_prior_run_date_for_stability_comparison(db):
     assert overlap == pytest.approx(0.5)
 
 
-def test_score_entry_point_writes_scores_and_run_manifest(tmp_path, monkeypatch):
+def test_score_entry_point_writes_scores_and_run_manifest(db, pg_env):
     """`python -m techtrend.score` against a fixture-populated DB writes
     scores rows and a run_manifest row with stage 'score'.
     """
-    import sqlite3
-
-    from techtrend.db import connection as db_connection
-
-    db_path = tmp_path / "score-entry.db"
-    monkeypatch.setattr(db_connection, "DEFAULT_DB_PATH", db_path)
-
     from techtrend import ingest, score
 
     assert ingest.main(["--fixture"]) == 0
     assert score.main([]) == 0
 
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    scores_count = conn.execute("SELECT COUNT(*) AS c FROM scores").fetchone()["c"]
-    run_manifest_count = conn.execute(
+    scores_count = db.execute("SELECT COUNT(*) AS c FROM scores").fetchone()["c"]
+    run_manifest_count = db.execute(
         "SELECT COUNT(*) AS c FROM run_manifest WHERE stage = 'score'"
     ).fetchone()["c"]
-    conn.close()
 
     assert scores_count >= 1
     assert run_manifest_count >= 1
