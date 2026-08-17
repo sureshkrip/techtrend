@@ -27,10 +27,18 @@ This creates a `.venv/` with all pinned dependencies from `uv.lock`.
 
 2. Set the two credentials in `.env`:
    - **`GITHUB_TOKEN`** — required for live collection and stargazer backfill (a valid, unexpired token; requests fail with `401` otherwise).
-   - **`ANTHROPIC_API_KEY`** — required for the enrichment stage (two-line summaries + section assignment via Claude Haiku).
+   - **`ANTHROPIC_API_KEY`** — required for the enrichment stage (two-line summaries + section assignment via Claude Haiku). This is the default provider — skip the rest of this bullet if you're not switching providers.
 
 Other configuration:
 - **Tunables** (ranking window, floors, caps, section taxonomy) live in `config/tracked.toml`. Point at a different file with `TECHTREND_CONFIG=/path/to/config.toml`.
+- **Alternative LLM provider (Kimi/Moonshot)** — the enrichment stage defaults to Anthropic Haiku 4.5. To route it to Kimi/Moonshot's OpenAI-compatible endpoint instead, set under `[tunables]` in `config/tracked.toml`:
+  ```toml
+  [tunables]
+  enrichment_provider = "openai"
+  enrichment_model = "kimi-k2.5"
+  # enrichment_base_url = "https://api.moonshot.ai/v1"  # optional, this is the default
+  ```
+  and set **`OPENAI_API_KEY`** in `.env`.
 - **Data location** (SQLite DB, HTTP cache, logs) defaults to the repo root. Override with `TECHTREND_DATA_DIR=/path/to/data`. The database initializes itself on first run — there is no separate migration step.
 
 ## Run

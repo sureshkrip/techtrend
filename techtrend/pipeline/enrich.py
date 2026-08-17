@@ -187,14 +187,28 @@ def run_enrichment(
             return _content_hash(normalize_for_hash(description, readme_intro))
 
     if llm_call_fn is None:
-        llm_client = build_llm_client()
         section_dicts = [s.model_dump() for s in config.sections]
         enrichment_model = tunables.enrichment_model
 
-        def llm_call_fn(**kwargs):
-            return enrich_item(
-                llm_client, model=enrichment_model, sections=section_dicts, **kwargs
-            )
+        if tunables.enrichment_provider == "openai":
+            # Lazily imported so an anthropic-only run never imports openai
+            # (mirrors the grounding/llm client's lazy-build-on-first-use
+            # pattern above).
+            from techtrend.pipeline.llm_openai import build_openai_client, enrich_item_openai
+
+            openai_client = build_openai_client(base_url=tunables.enrichment_base_url)
+
+            def llm_call_fn(**kwargs):
+                return enrich_item_openai(
+                    openai_client, model=enrichment_model, sections=section_dicts, **kwargs
+                )
+        else:
+            llm_client = build_llm_client()
+
+            def llm_call_fn(**kwargs):
+                return enrich_item(
+                    llm_client, model=enrichment_model, sections=section_dicts, **kwargs
+                )
 
     written = 0
     for row in candidates:
