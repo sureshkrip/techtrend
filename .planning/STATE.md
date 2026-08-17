@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-08-14)
 Phase: 3 — Source Breadth — Discourse, Downloads & Changelogs
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-08-17 — Quick task 260817-0qt: SQLite→PostgreSQL migration (code complete; suite unverified — blocked on local PG install + 7 SQLite-bound test files)
+Last activity: 2026-08-17 — Completed quick task 260817-0qt: SQLite→PostgreSQL migration, full suite green (142 passed) on local PostgreSQL 17
 
 Progress: [██████████] 100%
 
@@ -126,7 +126,7 @@ None yet.
 | 260816-lkt | Single daily-pipeline entrypoint (`python -m techtrend.daily`) chaining collect→score→enrich with fail-fast exit-code propagation; Dockerfile scheduled-task guidance updated | 2026-08-16 | cbfb874 | | [260816-lkt-add-a-single-daily-pipeline-entrypoint-t](./quick/260816-lkt-add-a-single-daily-pipeline-entrypoint-t/) |
 | 2 | Add README.md with setup/run/deploy instructions (verified commands) | 2026-08-17 | 2954025 | | — |
 | 260817-09l | OpenAI-compatible LLM provider (Kimi/Moonshot) as config-selectable alternative to Anthropic for enrichment; default stays Anthropic Haiku 4.5 | 2026-08-17 | ef50e98 | Complete | [260817-09l-add-openai-compatible-llm-provider-kimi-](./quick/260817-09l-add-openai-compatible-llm-provider-kimi-/) |
-| 260817-0qt | Migrate storage backend SQLite→PostgreSQL (psycopg3). Code complete: DB layer, schema DDL, all SQL paramstyle rewritten, no sqlite3 left, PGPASSWORD isolated, provider tests pass. Suite UNVERIFIED — blocked on (a) no local PG binaries and (b) 7 test files still hard-code SQLite mechanics (see deferred-items). | 2026-08-17 | 13d28e8 | Gaps (blocked) | [260817-0qt-migrate-storage-backend-from-sqlite-to-p](./quick/260817-0qt-migrate-storage-backend-from-sqlite-to-p/) |
+| 260817-0qt | Migrate storage backend SQLite→PostgreSQL (psycopg3): DB layer, schema DDL, all SQL paramstyle across ingest/pipeline/server, no sqlite3 left, PGPASSWORD isolated to db/connection.py, ephemeral-PG pytest harness + 10 test files migrated. Full suite GREEN (142 passed) on local PostgreSQL 17; provider work (260817-09l) intact. | 2026-08-17 | 1a0a21e | Complete | [260817-0qt-migrate-storage-backend-from-sqlite-to-p](./quick/260817-0qt-migrate-storage-backend-from-sqlite-to-p/) |
 
 ## Deferred Items
 

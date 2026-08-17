@@ -97,12 +97,12 @@ coverage:
 
 duration: 55min
 completed: 2026-08-17
-status: incomplete
+status: complete
 ---
 
 # Quick Task 260817-0qt: Migrate storage backend from SQLite to PostgreSQL Summary
 
-**Full psycopg3/Postgres replacement of the SQLite storage layer — connection, DDL, every parameterized query across ingest/pipeline/server, and an ephemeral-Postgres pytest harness — implemented and committed exactly per plan; the full-suite pass claim could not be verified because no local PostgreSQL binaries are installed on this machine, and a separate, plan-scope test-file gap was discovered during verification.**
+**Full psycopg3/Postgres replacement of the SQLite storage layer — connection, DDL, every parameterized query across ingest/pipeline/server, and an ephemeral-Postgres pytest harness — implemented, committed, and VERIFIED GREEN (142 passed) against local PostgreSQL 17. Initial verification was blocked (no PG binaries installed); after PostgreSQL 17 was installed, a follow-up pass migrated 10 remaining SQLite-bound test files (inline `:name`/`?` paramstyle, `connect(db_path)`/`DEFAULT_DB_PATH` mechanics, and SQLite-only WAL/`sqlite_master` assertions) — commits 444a692, ec37579, 1a0a21e, all confined to tests/. Provider work (260817-09l) unaffected.**
 
 ## Performance
 
