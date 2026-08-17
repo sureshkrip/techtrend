@@ -7,11 +7,11 @@ dashboard is strictly read-only (D-17).
 """
 
 import logging
-import sqlite3
 import tomllib
 from datetime import UTC, datetime
 from pathlib import Path
 
+import psycopg
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -56,14 +56,14 @@ def dashboard(request: Request, sort: str = "velocity", section: str | None = No
     full count regardless of the current filter.
     """
     db_error = None
-    rows: list[sqlite3.Row] = []
+    rows: list[dict] = []
     applied_sort = sort
     partial_history_count = 0
     health = None
     has_successful_run = False
     section_counts: dict[str, int] = {}
     sections: list = []
-    conn: sqlite3.Connection | None = None
+    conn: psycopg.Connection | None = None
 
     try:
         config = load_config()
@@ -79,7 +79,7 @@ def dashboard(request: Request, sort: str = "velocity", section: str | None = No
         # sparseness) -- the latter must never render the "run ingest"
         # empty state, which would be false.
         has_successful_run = has_successful_collector_run(conn)
-    except (sqlite3.Error, OSError, tomllib.TOMLDecodeError, ValueError) as exc:
+    except (psycopg.Error, OSError, tomllib.TOMLDecodeError, ValueError) as exc:
         logger.warning("stage=dashboard status=read_failed error=%s", exc)
         db_error = DB_UNREADABLE_MESSAGE
     finally:

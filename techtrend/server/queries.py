@@ -31,7 +31,7 @@ and accepts an optional `section` filter for the sidebar (DASH-02/D-11) --
 bound as a SQL parameter, never interpolated.
 """
 
-import sqlite3
+import psycopg
 
 from techtrend.pipeline.score import CURRENT_SCORE_VERSION
 
@@ -78,12 +78,12 @@ _QUERY_RANKED_SQL = """
             SELECT MAX(e2.computed_at) FROM enrichments AS e2
             WHERE e2.entity_id = entities.id
         )
-    WHERE scores.score_version = :score_version
+    WHERE scores.score_version = %(score_version)s
       AND scores.eligible = 1
       AND scores.run_date = (
           SELECT MAX(latest.run_date)
           FROM scores AS latest
-          WHERE latest.score_version = :score_version
+          WHERE latest.score_version = %(score_version)s
       )
       {section_filter}
     ORDER BY {order_by}
@@ -91,8 +91,8 @@ _QUERY_RANKED_SQL = """
 
 
 def query_ranked(
-    conn: sqlite3.Connection, sort: str = DEFAULT_SORT, section: str | None = None
-) -> tuple[list[sqlite3.Row], str]:
+    conn: psycopg.Connection, sort: str = DEFAULT_SORT, section: str | None = None
+) -> tuple[list[dict], str]:
     """Return every eligible, current-score-version entity, ordered by the
     requested sort, plus the sort key actually applied.
 
@@ -117,7 +117,7 @@ def query_ranked(
     """
     applied_sort = sort if sort in SORT_KEYS else DEFAULT_SORT
     order_by = SORT_KEYS[applied_sort]
-    section_filter = "AND enrichments.section = :section" if section else ""
+    section_filter = "AND enrichments.section = %(section)s" if section else ""
     sql = _QUERY_RANKED_SQL.format(order_by=order_by, section_filter=section_filter)
     params: dict[str, object] = {"score_version": CURRENT_SCORE_VERSION}
     if section:
@@ -126,7 +126,7 @@ def query_ranked(
     return rows, applied_sort
 
 
-def query_section_counts(conn: sqlite3.Connection) -> dict[str, int]:
+def query_section_counts(conn: psycopg.Connection) -> dict[str, int]:
     """Per-section counts for the sidebar (DASH-02/D-11), pinned to the same
     MAX(run_date)/eligible=1/current-score-version seam as query_ranked, so
     sidebar counts never drift from what the table actually renders.
@@ -145,13 +145,13 @@ def query_section_counts(conn: sqlite3.Connection) -> dict[str, int]:
                 SELECT MAX(e2.computed_at) FROM enrichments AS e2
                 WHERE e2.entity_id = entities.id
             )
-        WHERE scores.score_version = :score_version
+        WHERE scores.score_version = %(score_version)s
           AND scores.eligible = 1
           AND enrichments.section IS NOT NULL
           AND scores.run_date = (
               SELECT MAX(latest.run_date)
               FROM scores AS latest
-              WHERE latest.score_version = :score_version
+              WHERE latest.score_version = %(score_version)s
           )
         GROUP BY enrichments.section
         """,
@@ -160,7 +160,7 @@ def query_section_counts(conn: sqlite3.Connection) -> dict[str, int]:
     return {row["section"]: row["count"] for row in rows}
 
 
-def query_partial_history_count(conn: sqlite3.Connection, window_days: int) -> int:
+def query_partial_history_count(conn: psycopg.Connection, window_days: int) -> int:
     """Count current-score-version, ineligible entities whose observed
     `window_days` is below the configured window -- these are the entities
     excluded from `query_ranked`'s rows specifically because they are still
@@ -176,13 +176,13 @@ def query_partial_history_count(conn: sqlite3.Connection, window_days: int) -> i
         """
         SELECT COUNT(*) AS count
         FROM scores
-        WHERE scores.score_version = :score_version
+        WHERE scores.score_version = %(score_version)s
           AND scores.eligible = 0
-          AND scores.window_days < :window_days
+          AND scores.window_days < %(window_days)s
           AND scores.run_date = (
               SELECT MAX(latest.run_date)
               FROM scores AS latest
-              WHERE latest.score_version = :score_version
+              WHERE latest.score_version = %(score_version)s
           )
         """,
         {"score_version": CURRENT_SCORE_VERSION, "window_days": window_days},
@@ -190,7 +190,7 @@ def query_partial_history_count(conn: sqlite3.Connection, window_days: int) -> i
     return row["count"]
 
 
-def query_latest_run(conn: sqlite3.Connection) -> sqlite3.Row | None:
+def query_latest_run(conn: psycopg.Connection) -> dict | None:
     """Return the most recent successful run_manifest row, or None if the table is empty.
 
     Any stage counts (DASH-06 planner assumption: "last successful refresh"

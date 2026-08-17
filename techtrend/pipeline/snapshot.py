@@ -34,7 +34,7 @@ def write_snapshot(
     conn.execute(
         """
         INSERT INTO snapshots (entity_id, collected_at, metric_name, metric_value, source_kind)
-        VALUES (:entity_id, :collected_at, :metric_name, :metric_value, :source_kind)
+        VALUES (%(entity_id)s, %(collected_at)s, %(metric_name)s, %(metric_value)s, %(source_kind)s)
         ON CONFLICT(entity_id, collected_at, metric_name) DO UPDATE SET
             metric_value = excluded.metric_value,
             source_kind = excluded.source_kind

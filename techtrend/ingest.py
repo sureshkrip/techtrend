@@ -51,8 +51,8 @@ def _upsert_entity(conn, source_record: dict, now: str) -> int:
             source, source_native_id, full_name, url, homepage,
             discovery_method, admitted_at, last_seen_at
         ) VALUES (
-            'github', :native_id, :full_name, :url, :homepage,
-            'seed', :now, :now
+            'github', %(native_id)s, %(full_name)s, %(url)s, %(homepage)s,
+            'seed', %(now)s, %(now)s
         )
         ON CONFLICT(source, source_native_id) DO UPDATE SET
             full_name = excluded.full_name,
@@ -69,7 +69,7 @@ def _upsert_entity(conn, source_record: dict, now: str) -> int:
         },
     )
     row = conn.execute(
-        "SELECT id FROM entities WHERE source = 'github' AND source_native_id = ?",
+        "SELECT id FROM entities WHERE source = 'github' AND source_native_id = %s",
         (str(source_record["id"]),),
     ).fetchone()
     return row["id"]
@@ -80,7 +80,7 @@ def _upsert_snapshot(conn, entity_id: int, source_record: dict, collected_at: st
     conn.execute(
         """
         INSERT INTO snapshots (entity_id, collected_at, metric_name, metric_value, source_kind)
-        VALUES (:entity_id, :collected_at, 'stars', :metric_value, 'observed')
+        VALUES (%(entity_id)s, %(collected_at)s, 'stars', %(metric_value)s, 'observed')
         ON CONFLICT(entity_id, collected_at, metric_name) DO UPDATE SET
             metric_value = excluded.metric_value
         """,

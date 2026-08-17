@@ -31,9 +31,9 @@ def _top_n_eligible_ids(conn, run_date_str: str, score_version: int, top_n: int)
     rows = conn.execute(
         """
         SELECT entity_id FROM scores
-        WHERE run_date = ? AND score_version = ? AND eligible = 1
+        WHERE run_date = %s AND score_version = %s AND eligible = 1
         ORDER BY wilson_lower_bound DESC, entity_id ASC
-        LIMIT ?
+        LIMIT %s
         """,
         (run_date_str, score_version, top_n),
     ).fetchall()
@@ -44,7 +44,7 @@ def _previous_run_date(conn, run_date_str: str, score_version: int) -> str | Non
     row = conn.execute(
         """
         SELECT DISTINCT run_date FROM scores
-        WHERE score_version = ? AND run_date < ?
+        WHERE score_version = %s AND run_date < %s
         ORDER BY run_date DESC
         LIMIT 1
         """,

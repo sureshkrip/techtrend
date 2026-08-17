@@ -52,8 +52,8 @@ def resolve_entity(conn, item: CollectedItem, now: datetime) -> int | None:
             source, source_native_id, full_name, url, homepage,
             docs_url, docs_url_kind, discovery_method, admitted_at, last_seen_at
         ) VALUES (
-            :source, :native_id, :full_name, :url, :homepage,
-            :docs_url, :docs_url_kind, :discovery_method, :now, :now
+            %(source)s, %(native_id)s, %(full_name)s, %(url)s, %(homepage)s,
+            %(docs_url)s, %(docs_url_kind)s, %(discovery_method)s, %(now)s, %(now)s
         )
         ON CONFLICT(source, source_native_id) DO UPDATE SET
             full_name = excluded.full_name,
@@ -76,7 +76,7 @@ def resolve_entity(conn, item: CollectedItem, now: datetime) -> int | None:
         },
     )
     row = conn.execute(
-        "SELECT id FROM entities WHERE source = ? AND source_native_id = ?",
+        "SELECT id FROM entities WHERE source = %s AND source_native_id = %s",
         (item.source, native_id),
     ).fetchone()
     return row["id"]

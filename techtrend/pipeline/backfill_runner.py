@@ -45,7 +45,7 @@ def _now_iso() -> str:
 
 def _select_backfill_candidates(conn) -> list[dict]:
     """Entities due for a backfill attempt this run (D-08)."""
-    placeholders = ",".join("?" for _ in _RETRY_STATUSES)
+    placeholders = ",".join("%s" for _ in _RETRY_STATUSES)
     rows = conn.execute(
         f"SELECT id, full_name, backfill_status FROM entities "
         f"WHERE backfill_status IN ({placeholders})",
@@ -55,7 +55,7 @@ def _select_backfill_candidates(conn) -> list[dict]:
 
 
 def _count_skipped(conn) -> int:
-    placeholders = ",".join("?" for _ in _SKIPPED_STATUSES)
+    placeholders = ",".join("%s" for _ in _SKIPPED_STATUSES)
     row = conn.execute(
         f"SELECT COUNT(*) AS n FROM entities WHERE backfill_status IN ({placeholders})",
         _SKIPPED_STATUSES,
@@ -71,7 +71,7 @@ def _latest_observed_stars(conn, entity_id: int) -> int | None:
     row = conn.execute(
         """
         SELECT metric_value FROM snapshots
-        WHERE entity_id = ? AND metric_name = 'stars' AND source_kind = 'observed'
+        WHERE entity_id = %s AND metric_name = 'stars' AND source_kind = 'observed'
         ORDER BY collected_at DESC LIMIT 1
         """,
         (entity_id,),
@@ -83,8 +83,8 @@ def _set_backfill_status(
     conn, entity_id: int, status: str, backfilled_at: str | None = None
 ) -> None:
     conn.execute(
-        "UPDATE entities SET backfill_status = ?, "
-        "backfilled_at = COALESCE(?, backfilled_at) WHERE id = ?",
+        "UPDATE entities SET backfill_status = %s, "
+        "backfilled_at = COALESCE(%s, backfilled_at) WHERE id = %s",
         (status, backfilled_at, entity_id),
     )
 

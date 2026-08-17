@@ -58,7 +58,8 @@ def record_stage(
         INSERT INTO run_manifest (
             run_date, stage, status, item_count, error_detail, started_at, finished_at
         ) VALUES (
-            :run_date, :stage, :status, :item_count, :error_detail, :started_at, :finished_at
+            %(run_date)s, %(stage)s, %(status)s, %(item_count)s, %(error_detail)s,
+            %(started_at)s, %(finished_at)s
         )
         ON CONFLICT(run_date, stage) DO UPDATE SET
             status = excluded.status,

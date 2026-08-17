@@ -25,9 +25,10 @@ before it ever reaches the render context; the untruncated text stays in
 the log file only (T-01-31 mitigation).
 """
 
-import sqlite3
 from datetime import UTC, datetime
 from enum import StrEnum
+
+import psycopg
 
 from techtrend.server.queries import query_latest_run
 
@@ -75,14 +76,14 @@ def _truncate_error_detail(detail: str | None) -> str | None:
 
 
 def _latest_collector_stage(
-    conn: sqlite3.Connection, status: str | None = None
-) -> sqlite3.Row | None:
+    conn: psycopg.Connection, status: str | None = None
+) -> dict | None:
     """Most recent `collect:*` run_manifest row, optionally filtered to a status."""
     if status is None:
         return conn.execute(
             """
             SELECT * FROM run_manifest
-            WHERE stage LIKE 'collect:%'
+            WHERE stage LIKE 'collect:%%'
             ORDER BY run_date DESC, started_at DESC
             LIMIT 1
             """
@@ -90,7 +91,7 @@ def _latest_collector_stage(
     return conn.execute(
         """
         SELECT * FROM run_manifest
-        WHERE stage LIKE 'collect:%' AND status = :status
+        WHERE stage LIKE 'collect:%%' AND status = %(status)s
         ORDER BY run_date DESC, started_at DESC
         LIMIT 1
         """,
@@ -98,7 +99,7 @@ def _latest_collector_stage(
     ).fetchone()
 
 
-def _latest_score_stage(conn: sqlite3.Connection) -> sqlite3.Row | None:
+def _latest_score_stage(conn: psycopg.Connection) -> dict | None:
     """Most recent `score` run_manifest row, mirroring `_latest_collector_stage`
     (D-16/WR-01) -- the collect stage succeeding says nothing about whether the
     scores derived from it were ever written.
@@ -113,7 +114,7 @@ def _latest_score_stage(conn: sqlite3.Connection) -> sqlite3.Row | None:
     ).fetchone()
 
 
-def _trailing_average_non_trivial(conn: sqlite3.Connection, trailing_runs: int) -> bool:
+def _trailing_average_non_trivial(conn: psycopg.Connection, trailing_runs: int) -> bool:
     """True when the average item_count across the last `trailing_runs`
     collector runs (most recent first, including the current one) is
     greater than zero -- the zero_items floor check (Pitfall 1).
@@ -121,9 +122,9 @@ def _trailing_average_non_trivial(conn: sqlite3.Connection, trailing_runs: int) 
     rows = conn.execute(
         """
         SELECT item_count FROM run_manifest
-        WHERE stage LIKE 'collect:%'
+        WHERE stage LIKE 'collect:%%'
         ORDER BY run_date DESC, started_at DESC
-        LIMIT :trailing_runs
+        LIMIT %(trailing_runs)s
         """,
         {"trailing_runs": trailing_runs},
     ).fetchall()
@@ -145,7 +146,7 @@ def _stale_message(relative: str) -> str:
     return f"Data may be out of date — last successful run was {relative}."
 
 
-def has_successful_collector_run(conn: sqlite3.Connection) -> bool:
+def has_successful_collector_run(conn: psycopg.Connection) -> bool:
     """True if at least one `collect:*` run_manifest row has ever recorded
     `status = 'success'` (V2/D-08a). This is the same predicate
     `health_status()` uses internally to choose `NEVER_COMPLETED_MESSAGE`,
@@ -157,7 +158,7 @@ def has_successful_collector_run(conn: sqlite3.Connection) -> bool:
     return _latest_collector_stage(conn, status="success") is not None
 
 
-def health_status(conn: sqlite3.Connection, config, now: datetime) -> dict:
+def health_status(conn: psycopg.Connection, config, now: datetime) -> dict:
     """Return `{'tier': HealthTier, 'message': str, 'detail': str | None}`."""
     staleness_hours = config.tunables.staleness_hours
     zero_items_trailing_runs = config.tunables.zero_items_trailing_runs

@@ -43,15 +43,15 @@ _SELECT_CANDIDATES_SQL = """
         scores.wilson_lower_bound
     FROM entities
     JOIN scores ON scores.entity_id = entities.id
-    WHERE scores.score_version = :score_version
+    WHERE scores.score_version = %(score_version)s
       AND scores.eligible = 1
       AND scores.run_date = (
           SELECT MAX(latest.run_date)
           FROM scores AS latest
-          WHERE latest.score_version = :score_version
+          WHERE latest.score_version = %(score_version)s
       )
     ORDER BY scores.wilson_lower_bound DESC, entities.id ASC
-    LIMIT :enrichment_cap
+    LIMIT %(enrichment_cap)s
 """
 
 
@@ -76,7 +76,7 @@ def _cache_hit(conn, entity_id: int, content_hash: str) -> bool:
     (entity, content_hash) pair -- unchanged content never re-calls the LLM
     (DATA-04/D-09/SC4)."""
     row = conn.execute(
-        "SELECT id FROM enrichments WHERE entity_id = ? AND content_hash = ? "
+        "SELECT id FROM enrichments WHERE entity_id = %s AND content_hash = %s "
         "AND status = 'complete'",
         (entity_id, content_hash),
     ).fetchone()
@@ -91,14 +91,14 @@ def _write_tombstone(conn, entity_id: int) -> None:
     """Record a 'fetch_failed' tombstone (content_hash NULL, D-08/D-10) --
     used both for an unfetchable/empty grounding fetch and for an LLM
     refusal, so an entity that couldn't be summarized this run is never
-    silently missing and never fabricated. SQLite treats each NULL as
+    silently missing and never fabricated. Postgres treats each NULL as
     distinct under UNIQUE(entity_id, content_hash), so multiple tombstones
     per entity across runs are allowed without conflict."""
     conn.execute(
         """
         INSERT INTO enrichments (
             entity_id, content_hash, status, computed_at
-        ) VALUES (?, NULL, 'fetch_failed', ?)
+        ) VALUES (%s, NULL, 'fetch_failed', %s)
         """,
         (entity_id, _now_iso()),
     )
@@ -113,7 +113,7 @@ def _write_complete(conn, entity_id: int, content_hash: str, result, low_confide
         INSERT INTO enrichments (
             entity_id, content_hash, status, summary_line_1, summary_line_2,
             section, confidence, low_confidence, computed_at
-        ) VALUES (?, ?, 'complete', ?, ?, ?, ?, ?, ?)
+        ) VALUES (%s, %s, 'complete', %s, %s, %s, %s, %s, %s)
         ON CONFLICT(entity_id, content_hash) DO UPDATE SET
             status = excluded.status,
             summary_line_1 = excluded.summary_line_1,

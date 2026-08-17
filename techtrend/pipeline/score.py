@@ -100,7 +100,7 @@ def compute_window_gain(conn, entity_id: int, window_days: int) -> WindowGain:
     rows = conn.execute(
         """
         SELECT collected_at, metric_value FROM snapshots
-        WHERE entity_id = ? AND metric_name = 'stars'
+        WHERE entity_id = %s AND metric_name = 'stars'
         ORDER BY collected_at ASC
         """,
         (entity_id,),
@@ -160,7 +160,7 @@ def rescore_all(conn, config, run_date) -> int:
     floor = config.tunables.window_gain_floor
 
     conn.execute(
-        "DELETE FROM scores WHERE score_version = ? AND run_date = ?",
+        "DELETE FROM scores WHERE score_version = %s AND run_date = %s",
         (CURRENT_SCORE_VERSION, run_date_str),
     )
 
@@ -181,7 +181,7 @@ def rescore_all(conn, config, run_date) -> int:
             INSERT INTO scores (
                 entity_id, run_date, score_version, stars_gained,
                 window_days, wilson_lower_bound, eligible
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 entity["id"],
