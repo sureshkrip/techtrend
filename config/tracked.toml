@@ -84,10 +84,20 @@ enrichment_cap = 15
 # README intro truncation cap in characters, applied before the first H2+
 # heading (D-07).
 grounding_char_cap = 2000
-# Claude model id for the enrichment summarize+classify call (D-03) — the
-# cheapest model that clears the bar for a two-line summary + one-of-seven
-# label; upgrade only this value if borderline classification proves weak.
-enrichment_model = "claude-haiku-4-5"
+# Model id for the enrichment summarize+classify call (D-03), provider-agnostic
+# — its meaning depends on enrichment_provider below. The cheapest model that
+# clears the bar for a two-line summary + one-of-seven label is preferred;
+# upgrade only this value if borderline classification proves weak.
+enrichment_model = "glm-4.7-flash"
+# Selects which LLM backend handles the summarize+classify call: "anthropic"
+# = Claude via the anthropic SDK; "openai" = any OpenAI-compatible endpoint.
+# This project uses "openai" to reach Zhipu / Z.ai's GLM API.
+enrichment_provider = "openai"
+# OpenAI-compatible endpoint used when enrichment_provider == "openai",
+# pointing at Z.ai's GLM API. The API secret is read at runtime from the
+# untracked .env file by the provider module and is intentionally NOT
+# stored here.
+enrichment_base_url = "https://api.z.ai/api/paas/v4/"
 # Confidence tier that trips the low-confidence dashboard flag (D-02).
 # Enum-only ("high"|"medium"|"low") — JSON Schema has no numeric range
 # support (Common Pitfall 2), so this names a tier, not a float threshold.
