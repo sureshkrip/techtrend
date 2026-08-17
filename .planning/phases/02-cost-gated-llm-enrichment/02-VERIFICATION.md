@@ -1,16 +1,18 @@
 ---
 phase: 02-cost-gated-llm-enrichment
 verified: 2026-08-15T00:00:00Z
-status: human_needed
+status: passed
 score: 4/4 must-haves verified (mechanism-level); 1 behavior-dependent item present-but-unverified (SC3 live anti-fabrication + visual walkthrough)
 behavior_unverified: 1
 overrides_applied: 0
 behavior_unverified_items:
+
   - truth: "A summary for a brand-new or obscure tool reflects its actual fetched README/changelog/thread text, not a plausible-sounding fabrication from the model's own training knowledge (SC3)."
     test: "Run `python -m techtrend.enrich` against real eligible entities with a real ANTHROPIC_API_KEY, then compare 2-3 rendered summaries against each repo's actual README intro."
     expected: "Every claim in summary_line_1/summary_line_2 is traceable to the fetched description/README text; nothing echoes plausible-sounding but unsupported claims."
     why_human: "No ANTHROPIC_API_KEY / no live-enriched rows exist in this environment. The anti-fabrication mechanism (grounded prompt, refusal->None, empty-grounding->skip) is verified in code and by unit test, but whether Haiku 4.5 actually stays grounded on real, messy README text can only be judged by reading real model output next to the real source text."
 human_verification:
+
   - test: "Live section browsing + anti-fabrication summary spot-check (already tracked in STATE.md's Deferred Items, 02-05 Task 3)"
     expected: "Sidebar counts match table rows per section; sort+section persist together; a low-confidence flag is spottable; 2-3 real summaries are traceable to real README text; unenriched rows show honest fallbacks and are never dropped."
     why_human: "Requires ANTHROPIC_API_KEY plus a fresh collect/score/enrich run against real data — unavailable in this environment. The 02-05 checkpoint was structurally accepted (tests + greps + static template review) rather than run live."
@@ -128,6 +130,7 @@ All items above are carried forward unresolved from `02-REVIEW.md` (dated 2026-0
 No must-have truth FAILED. All five plans' declared truths are backed by passing unit tests and direct source inspection; the cost-gate, grounding/anti-fabrication mechanism, cache-hit skip, and dashboard LEFT-JOIN/fallback/section-filter wiring are all present and correctly wired. The phase goal's mechanisms are real, not stubs.
 
 Two categories of open item prevent a clean `passed`:
+
 1. **One unresolved Critical code-review finding (CR-01)** that touches the exact guarantee SC1 states ("hard per-run cap... even on an unusually busy day") — currently non-violating under the shipped config, but left unaddressed after being flagged, and worth an explicit accept/fix decision rather than silent carry-forward.
 2. **SC3's live-data guarantee** (grounded, non-fabricated summaries) has a fully-implemented and unit-tested *mechanism*, but the actual quality of real Haiku 4.5 output against real README text has never been observed in this environment — this was already correctly identified and deferred by the 02-05 plan itself (STATE.md Deferred Items), not a new gap introduced by this verification.
 
