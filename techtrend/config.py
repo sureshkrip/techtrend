@@ -65,6 +65,14 @@ class Tunables(BaseModel):
     # enum-only ("high"|"medium"|"low") -- JSON Schema has no numeric range
     # support, see Common Pitfall 2.
     confidence_flag_threshold: str = "low"
+    # Which LLM provider handles the summarize+classify call: "anthropic"
+    # (default, Claude Haiku 4.5) or "openai" (OpenAI-compatible endpoint,
+    # e.g. Kimi/Moonshot). enrichment_model above is reused as the model id
+    # for whichever provider is selected here.
+    enrichment_provider: str = "anthropic"
+    # OpenAI-compatible base URL used only when enrichment_provider is
+    # "openai" (default: Moonshot AI's Kimi endpoint).
+    enrichment_base_url: str = "https://api.moonshot.ai/v1"
 
 
 class SectionDef(BaseModel):
