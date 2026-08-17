@@ -1,4 +1,4 @@
-"""Walking-skeleton end-to-end tests: config -> ingest -> SQLite -> FastAPI -> Jinja2.
+"""Walking-skeleton end-to-end tests: config -> ingest -> Postgres -> FastAPI -> Jinja2.
 
 These tests assert on rendered HTTP/HTML content, not internal return values --
 the point of a skeleton test is that it breaks if any layer of the stack is
@@ -7,15 +7,12 @@ which is an in-process ASGI call, not a live network request -- no outbound
 HTTP client call of any kind appears anywhere in this file.
 """
 
-import sqlite3
-
 from fastapi.testclient import TestClient
 
-from techtrend.db.connection import connect, init_db
 from techtrend.ingest import main as ingest_main
 
 
-def _seed_one_entity(db_path):
+def _seed_one_entity(conn):
     """Insert one entity + an eligible scores row directly (bypasses
     ingest/score) for dashboard tests.
 
@@ -27,8 +24,6 @@ def _seed_one_entity(db_path):
     """
     from techtrend.pipeline.score import CURRENT_SCORE_VERSION
 
-    conn = connect(db_path)
-    init_db(conn)
     conn.execute(
         """
         INSERT INTO entities (
@@ -48,55 +43,44 @@ def _seed_one_entity(db_path):
         INSERT INTO scores (
             entity_id, run_date, score_version, stars_gained,
             window_days, wilson_lower_bound, eligible
-        ) VALUES (:entity_id, '2026-07-19', :score_version, 100, 7, 0.5, 1)
+        ) VALUES (%(entity_id)s, '2026-07-19', %(score_version)s, 100, 7, 0.5, 1)
         """,
         {"entity_id": entity_id, "score_version": CURRENT_SCORE_VERSION},
     )
     conn.commit()
-    conn.close()
 
 
-def _row_counts(db_path):
-    conn = sqlite3.connect(db_path)
+def _row_counts(conn):
     counts = {}
     for table in ("entities", "snapshots", "run_manifest"):
-        counts[table] = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
-    conn.close()
+        counts[table] = conn.execute(f"SELECT COUNT(*) AS n FROM {table}").fetchone()["n"]
     return counts
 
 
-def _make_client(monkeypatch, db_path):
-    """Point techtrend.server.app's DB dependency at a temp DB path via monkeypatch."""
-    import techtrend.db.connection as connection_module
-
-    monkeypatch.setattr(connection_module, "DEFAULT_DB_PATH", db_path)
+def _make_client():
+    """Depends on the `pg_env` fixture already having pointed
+    techtrend.db.connection.connect()'s zero-arg PG* env-var path at the
+    ephemeral test database -- callers must also request `pg_env`.
+    """
     from techtrend.server.app import app
 
     return TestClient(app)
 
 
-def test_fixture_ingest_writes_entity_and_snapshot(tmp_path, monkeypatch):
-    import techtrend.db.connection as connection_module
-
-    db_path = tmp_path / "skeleton-ingest.db"
-    monkeypatch.setattr(connection_module, "DEFAULT_DB_PATH", db_path)
-
+def test_fixture_ingest_writes_entity_and_snapshot(db, pg_env):
     exit_code = ingest_main(["--fixture"])
     assert exit_code == 0
 
-    conn = sqlite3.connect(db_path)
-    entity_count = conn.execute("SELECT COUNT(*) FROM entities").fetchone()[0]
-    snapshot_count = conn.execute("SELECT COUNT(*) FROM snapshots").fetchone()[0]
-    conn.close()
+    entity_count = db.execute("SELECT COUNT(*) AS n FROM entities").fetchone()["n"]
+    snapshot_count = db.execute("SELECT COUNT(*) AS n FROM snapshots").fetchone()["n"]
 
     assert entity_count >= 1
     assert snapshot_count >= 1
 
 
-def test_dashboard_renders_seeded_repo(tmp_path, monkeypatch):
-    db_path = tmp_path / "skeleton-dashboard.db"
-    _seed_one_entity(db_path)
-    client = _make_client(monkeypatch, db_path)
+def test_dashboard_renders_seeded_repo(db, pg_env):
+    _seed_one_entity(db)
+    client = _make_client()
 
     response = client.get("/")
 
@@ -105,10 +89,9 @@ def test_dashboard_renders_seeded_repo(tmp_path, monkeypatch):
     assert "Aider-AI/aider" in response.text
 
 
-def test_dashboard_row_links_to_source(tmp_path, monkeypatch):
-    db_path = tmp_path / "skeleton-links.db"
-    _seed_one_entity(db_path)
-    client = _make_client(monkeypatch, db_path)
+def test_dashboard_row_links_to_source(db, pg_env):
+    _seed_one_entity(db)
+    client = _make_client()
 
     response = client.get("/")
 
@@ -116,16 +99,8 @@ def test_dashboard_row_links_to_source(tmp_path, monkeypatch):
     assert 'href="https://github.com/Aider-AI/aider"' in response.text
 
 
-def test_dashboard_empty_state(tmp_path, monkeypatch):
-    import techtrend.db.connection as connection_module
-
-    db_path = tmp_path / "skeleton-empty.db"
-    monkeypatch.setattr(connection_module, "DEFAULT_DB_PATH", db_path)
-    conn = connect(db_path)
-    init_db(conn)
-    conn.close()
-
-    client = _make_client(monkeypatch, db_path)
+def test_dashboard_empty_state(db, pg_env):
+    client = _make_client()
     response = client.get("/")
 
     assert response.status_code == 200
@@ -133,14 +108,13 @@ def test_dashboard_empty_state(tmp_path, monkeypatch):
     assert "python -m techtrend.ingest" in response.text
 
 
-def test_dashboard_never_writes(tmp_path, monkeypatch):
-    db_path = tmp_path / "skeleton-readonly.db"
-    _seed_one_entity(db_path)
-    client = _make_client(monkeypatch, db_path)
+def test_dashboard_never_writes(db, pg_env):
+    _seed_one_entity(db)
+    client = _make_client()
 
-    before = _row_counts(db_path)
+    before = _row_counts(db)
     response = client.get("/")
-    after = _row_counts(db_path)
+    after = _row_counts(db)
 
     assert response.status_code == 200
     assert before == after

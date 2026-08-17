@@ -15,12 +15,9 @@ from datetime import UTC, date, datetime, timedelta
 
 from fastapi.testclient import TestClient
 
-import techtrend.db.connection as connection_module
 from techtrend.collectors.base import CollectedItem
 from techtrend.config import Config
-from techtrend.db.connection import connect, init_db
 from techtrend.pipeline.orchestrator import record_stage, run_collection
-from techtrend.server.app import app
 from techtrend.server.health import HealthTier, health_status
 
 
@@ -348,20 +345,21 @@ def test_zero_items_against_trailing_average_of_zero_is_not_critical(db, frozen_
 # --- Rendered health strip (integration, via the dashboard route) ---
 
 
-def _client_for(monkeypatch, db_path):
-    monkeypatch.setattr(connection_module, "DEFAULT_DB_PATH", db_path)
+def _client_for(pg_env):
+    """Depends on the `pg_env` fixture already having pointed
+    techtrend.db.connection.connect()'s zero-arg PG* env-var path at the
+    ephemeral test database -- callers must also request `pg_env`.
+    """
+    from techtrend.server.app import app
+
     return TestClient(app)
 
 
-def test_error_detail_truncated_in_rendered_health_strip(tmp_path, monkeypatch):
-    db_path = tmp_path / "health-detail.db"
-    conn = connect(db_path)
-    init_db(conn)
-
+def test_error_detail_truncated_in_rendered_health_strip(db, pg_env):
     now = datetime.now(UTC)
     good = now - timedelta(hours=1)
     record_stage(
-        conn,
+        db,
         "2026-07-18",
         "collect:github",
         "success",
@@ -371,7 +369,7 @@ def test_error_detail_truncated_in_rendered_health_strip(tmp_path, monkeypatch):
     )
     long_detail = "E" * 200
     record_stage(
-        conn,
+        db,
         "2026-07-19",
         "collect:github",
         "failed",
@@ -380,10 +378,9 @@ def test_error_detail_truncated_in_rendered_health_strip(tmp_path, monkeypatch):
         started_at=_iso(good),
         finished_at=_iso(good),
     )
-    conn.commit()
-    conn.close()
+    db.commit()
 
-    response = _client_for(monkeypatch, db_path).get("/")
+    response = _client_for(pg_env).get("/")
 
     assert response.status_code == 200
     truncated = ("E" * 120) + "..."
@@ -391,15 +388,11 @@ def test_error_detail_truncated_in_rendered_health_strip(tmp_path, monkeypatch):
     assert long_detail not in response.text
 
 
-def test_health_strip_renders_for_normal_tier(tmp_path, monkeypatch):
-    db_path = tmp_path / "health-normal.db"
-    conn = connect(db_path)
-    init_db(conn)
-
+def test_health_strip_renders_for_normal_tier(db, pg_env):
     now = datetime.now(UTC)
     recent = now - timedelta(hours=1)
     record_stage(
-        conn,
+        db,
         "2026-07-19",
         "collect:github",
         "success",
@@ -407,27 +400,21 @@ def test_health_strip_renders_for_normal_tier(tmp_path, monkeypatch):
         started_at=_iso(recent),
         finished_at=_iso(recent),
     )
-    conn.commit()
-    conn.close()
+    db.commit()
 
-    response = _client_for(monkeypatch, db_path).get("/")
+    response = _client_for(pg_env).get("/")
 
     assert response.status_code == 200
     assert "health-strip" in response.text
     assert "health-normal" in response.text
 
 
-def test_health_strip_renders_for_critical_tier_on_empty_run_manifest(tmp_path, monkeypatch):
+def test_health_strip_renders_for_critical_tier_on_empty_run_manifest(db, pg_env):
     """The health strip is persistent -- present unconditionally, including
     in the critical tier on a totally empty run_manifest (a brand-new
     install), not only in the normal case.
     """
-    db_path = tmp_path / "health-critical.db"
-    conn = connect(db_path)
-    init_db(conn)
-    conn.close()
-
-    response = _client_for(monkeypatch, db_path).get("/")
+    response = _client_for(pg_env).get("/")
 
     assert response.status_code == 200
     assert "health-strip" in response.text

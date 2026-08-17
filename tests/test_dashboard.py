@@ -1,9 +1,10 @@
 """Dashboard route tests (DASH-01, DASH-03, DASH-04, DASH-05, DASH-06).
 
-Every entity/scores/snapshots row is written directly against a real
-temp-file SQLite connection (CLAUDE.md testing philosophy: no live network
-call, no live ingest/score run). `techtrend.server.app`'s own DB dependency
-is repointed at that same file via `monkeypatch` before each
+Every entity/scores/snapshots row is written directly against the shared
+`db` fixture's ephemeral Postgres connection (CLAUDE.md testing philosophy:
+no live network call, no live ingest/score run). `techtrend.server.app`'s
+route calls `connect()` with no args, so the `pg_env` fixture repoints its
+PG* env-var lookup at that same ephemeral database before each
 `fastapi.testclient.TestClient` request, mirroring the pattern already
 proven in `tests/test_skeleton.py`.
 """
@@ -13,20 +14,10 @@ import re
 from fastapi.testclient import TestClient
 
 import techtrend.config as config_module
-import techtrend.db.connection as connection_module
-from techtrend.db.connection import connect, init_db
+from techtrend.db.connection import connect
 from techtrend.pipeline.score import CURRENT_SCORE_VERSION
-from techtrend.server.app import app
 
 DEFAULT_WINDOW_DAYS = 7  # config/tracked.toml's Tunables.window_days default
-
-
-def _seed_db(tmp_path, name="dash-test.db"):
-    """Return (db_path, conn) for an initialized temp-file DB, open for writes."""
-    db_path = tmp_path / name
-    conn = connect(db_path)
-    init_db(conn)
-    return db_path, conn
 
 
 def _insert_entity(
@@ -47,8 +38,8 @@ def _insert_entity(
             source, source_native_id, full_name, url, homepage, docs_url,
             docs_url_kind, discovery_method, admitted_at, last_seen_at
         ) VALUES (
-            'github', :native_id, :full_name, :url, :homepage, :docs_url,
-            :docs_url_kind, 'seed', '2026-07-01T00:00:00Z', '2026-07-19T00:00:00Z'
+            'github', %(native_id)s, %(full_name)s, %(url)s, %(homepage)s, %(docs_url)s,
+            %(docs_url_kind)s, 'seed', '2026-07-01T00:00:00Z', '2026-07-19T00:00:00Z'
         )
         """,
         {
@@ -61,7 +52,7 @@ def _insert_entity(
         },
     )
     return conn.execute(
-        "SELECT id FROM entities WHERE source = 'github' AND source_native_id = ?",
+        "SELECT id FROM entities WHERE source = 'github' AND source_native_id = %s",
         (native_id,),
     ).fetchone()["id"]
 
@@ -82,7 +73,7 @@ def _insert_score(
         INSERT INTO scores (
             entity_id, run_date, score_version, stars_gained,
             window_days, wilson_lower_bound, eligible
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s)
         """,
         (
             entity_id,
@@ -100,15 +91,19 @@ def _insert_snapshot(conn, entity_id, collected_at, value):
     conn.execute(
         """
         INSERT INTO snapshots (entity_id, collected_at, metric_name, metric_value, source_kind)
-        VALUES (?, ?, 'stars', ?, 'observed')
+        VALUES (%s, %s, 'stars', %s, 'observed')
         """,
         (entity_id, collected_at, value),
     )
 
 
-def _client(monkeypatch, db_path):
-    """Point the app's DB dependency at db_path and return a fresh TestClient."""
-    monkeypatch.setattr(connection_module, "DEFAULT_DB_PATH", db_path)
+def _client():
+    """Depends on the `pg_env` fixture already having pointed
+    techtrend.db.connection.connect()'s zero-arg PG* env-var path at the
+    ephemeral test database -- callers must also request `pg_env`.
+    """
+    from techtrend.server.app import app
+
     return TestClient(app)
 
 
@@ -134,8 +129,8 @@ def _sort_link_html(text, key):
 # --- DASH-01: dense sortable table, ordering, adjacency, empty state ---
 
 
-def test_ranked_rows_render_in_velocity_descending_order(tmp_path, monkeypatch):
-    db_path, conn = _seed_db(tmp_path)
+def test_ranked_rows_render_in_velocity_descending_order(db, pg_env):
+    conn = db
     a = _insert_entity(conn, "1", full_name="owner/repo-a")
     b = _insert_entity(conn, "2", full_name="owner/repo-b")
     c = _insert_entity(conn, "3", full_name="owner/repo-c")
@@ -143,9 +138,8 @@ def test_ranked_rows_render_in_velocity_descending_order(tmp_path, monkeypatch):
     _insert_score(conn, b, wilson_lower_bound=0.5)
     _insert_score(conn, c, wilson_lower_bound=0.1)
     conn.commit()
-    conn.close()
 
-    client = _client(monkeypatch, db_path)
+    client = _client()
     response = client.get("/")
 
     assert response.status_code == 200
@@ -157,8 +151,8 @@ def test_ranked_rows_render_in_velocity_descending_order(tmp_path, monkeypatch):
     )
 
 
-def test_equal_bounds_break_tie_by_entity_id_ascending_and_are_stable(tmp_path, monkeypatch):
-    db_path, conn = _seed_db(tmp_path)
+def test_equal_bounds_break_tie_by_entity_id_ascending_and_are_stable(db, pg_env):
+    conn = db
     # Insert "zebra" first so it gets the lower entity id despite sorting
     # alphabetically after "alpha" -- proves the tiebreak is entities.id
     # ascending, not incidental insertion or name order.
@@ -167,9 +161,8 @@ def test_equal_bounds_break_tie_by_entity_id_ascending_and_are_stable(tmp_path, 
     _insert_score(conn, zebra, wilson_lower_bound=0.5)
     _insert_score(conn, alpha, wilson_lower_bound=0.5)
     conn.commit()
-    conn.close()
 
-    client = _client(monkeypatch, db_path)
+    client = _client()
     first = client.get("/")
     second = client.get("/")
 
@@ -178,11 +171,8 @@ def test_equal_bounds_break_tie_by_entity_id_ascending_and_are_stable(tmp_path, 
     assert first.text == second.text
 
 
-def test_zero_eligible_entities_renders_empty_state(tmp_path, monkeypatch):
-    db_path, conn = _seed_db(tmp_path)
-    conn.close()
-
-    client = _client(monkeypatch, db_path)
+def test_zero_eligible_entities_renders_empty_state(db, pg_env):
+    client = _client()
     response = client.get("/")
 
     assert response.status_code == 200
@@ -192,8 +182,8 @@ def test_zero_eligible_entities_renders_empty_state(tmp_path, monkeypatch):
 # --- DASH-03: allow-listed sorting, boundary, ordering, precision ---
 
 
-def test_sort_stars_reorders_and_unrecognized_sort_falls_back_to_velocity(tmp_path, monkeypatch):
-    db_path, conn = _seed_db(tmp_path)
+def test_sort_stars_reorders_and_unrecognized_sort_falls_back_to_velocity(db, pg_env):
+    conn = db
     high_velocity_low_stars = _insert_entity(conn, "1", full_name="owner/fast-mover")
     low_velocity_high_stars = _insert_entity(conn, "2", full_name="owner/big-repo")
     _insert_score(conn, high_velocity_low_stars, wilson_lower_bound=0.9, stars_gained=50)
@@ -201,9 +191,8 @@ def test_sort_stars_reorders_and_unrecognized_sort_falls_back_to_velocity(tmp_pa
     _insert_snapshot(conn, high_velocity_low_stars, "2026-07-19", 10)
     _insert_snapshot(conn, low_velocity_high_stars, "2026-07-19", 1000)
     conn.commit()
-    conn.close()
 
-    client = _client(monkeypatch, db_path)
+    client = _client()
 
     default_response = client.get("/")
     assert default_response.status_code == 200
@@ -224,14 +213,13 @@ def test_sort_stars_reorders_and_unrecognized_sort_falls_back_to_velocity(tmp_pa
     )
 
 
-def test_hx_request_returns_only_the_table_partial(tmp_path, monkeypatch):
-    db_path, conn = _seed_db(tmp_path)
+def test_hx_request_returns_only_the_table_partial(db, pg_env):
+    conn = db
     entity_id = _insert_entity(conn, "1", full_name="owner/partial-only")
     _insert_score(conn, entity_id, wilson_lower_bound=0.5)
     conn.commit()
-    conn.close()
 
-    client = _client(monkeypatch, db_path)
+    client = _client()
     response = client.get("/?sort=stars", headers={"HX-Request": "true"})
 
     assert response.status_code == 200
@@ -239,14 +227,13 @@ def test_hx_request_returns_only_the_table_partial(tmp_path, monkeypatch):
     assert "owner/partial-only" in response.text
 
 
-def test_active_sort_glyph_reflects_the_sort_actually_applied(tmp_path, monkeypatch):
-    db_path, conn = _seed_db(tmp_path)
+def test_active_sort_glyph_reflects_the_sort_actually_applied(db, pg_env):
+    conn = db
     entity_id = _insert_entity(conn, "1", full_name="owner/glyph-check")
     _insert_score(conn, entity_id, wilson_lower_bound=0.5)
     conn.commit()
-    conn.close()
 
-    client = _client(monkeypatch, db_path)
+    client = _client()
     response = client.get("/?sort=nonsense")
 
     assert response.status_code == 200
@@ -257,8 +244,8 @@ def test_active_sort_glyph_reflects_the_sort_actually_applied(tmp_path, monkeypa
     assert "sort-active" not in stars_link
 
 
-def test_velocity_renders_four_decimals_while_sorting_on_unrounded_value(tmp_path, monkeypatch):
-    db_path, conn = _seed_db(tmp_path)
+def test_velocity_renders_four_decimals_while_sorting_on_unrounded_value(db, pg_env):
+    conn = db
     # Both round to the same 4-decimal display ("0.5000") but differ at the
     # 6th decimal -- the unrounded value must still drive sort order.
     higher = _insert_entity(conn, "1", full_name="owner/six-hi")
@@ -266,9 +253,8 @@ def test_velocity_renders_four_decimals_while_sorting_on_unrounded_value(tmp_pat
     _insert_score(conn, higher, wilson_lower_bound=0.500009)
     _insert_score(conn, lower, wilson_lower_bound=0.500001)
     conn.commit()
-    conn.close()
 
-    client = _client(monkeypatch, db_path)
+    client = _client()
     response = client.get("/")
 
     assert response.status_code == 200
@@ -279,8 +265,8 @@ def test_velocity_renders_four_decimals_while_sorting_on_unrounded_value(tmp_pat
 # --- DASH-04/DASH-05: honest outbound links ---
 
 
-def test_row_links_source_before_docs_with_honest_label(tmp_path, monkeypatch):
-    db_path, conn = _seed_db(tmp_path)
+def test_row_links_source_before_docs_with_honest_label(db, pg_env):
+    conn = db
     documented = _insert_entity(
         conn,
         "1",
@@ -300,9 +286,8 @@ def test_row_links_source_before_docs_with_honest_label(tmp_path, monkeypatch):
     _insert_score(conn, documented, wilson_lower_bound=0.9)
     _insert_score(conn, undocumented, wilson_lower_bound=0.1)
     conn.commit()
-    conn.close()
 
-    client = _client(monkeypatch, db_path)
+    client = _client()
     response = client.get("/")
     text = response.text
 
@@ -328,24 +313,23 @@ def test_row_links_source_before_docs_with_honest_label(tmp_path, monkeypatch):
 # --- DASH-01/D-08a: partial-history footer note, singular/plural ---
 
 
-def test_partial_history_footer_singular_for_one_excluded_entity(tmp_path, monkeypatch):
-    db_path, conn = _seed_db(tmp_path)
+def test_partial_history_footer_singular_for_one_excluded_entity(db, pg_env):
+    conn = db
     ranked = _insert_entity(conn, "1", full_name="owner/ranked-repo")
     fresh = _insert_entity(conn, "2", full_name="owner/fresh-repo")
     _insert_score(conn, ranked, wilson_lower_bound=0.9, eligible=1, window_days=7)
     _insert_score(conn, fresh, eligible=0, window_days=1)
     conn.commit()
-    conn.close()
 
-    client = _client(monkeypatch, db_path)
+    client = _client()
     response = client.get("/")
 
     assert response.status_code == 200
     assert "1 repo is still building history and isn't ranked yet." in response.text
 
 
-def test_partial_history_footer_plural_for_multiple_excluded_entities(tmp_path, monkeypatch):
-    db_path, conn = _seed_db(tmp_path)
+def test_partial_history_footer_plural_for_multiple_excluded_entities(db, pg_env):
+    conn = db
     ranked = _insert_entity(conn, "1", full_name="owner/ranked-repo")
     fresh_a = _insert_entity(conn, "2", full_name="owner/fresh-repo-a")
     fresh_b = _insert_entity(conn, "3", full_name="owner/fresh-repo-b")
@@ -353,9 +337,8 @@ def test_partial_history_footer_plural_for_multiple_excluded_entities(tmp_path, 
     _insert_score(conn, fresh_a, eligible=0, window_days=1)
     _insert_score(conn, fresh_b, eligible=0, window_days=2)
     conn.commit()
-    conn.close()
 
-    client = _client(monkeypatch, db_path)
+    client = _client()
     response = client.get("/")
 
     assert response.status_code == 200
@@ -368,8 +351,8 @@ def test_partial_history_footer_plural_for_multiple_excluded_entities(tmp_path, 
 # --- Regression: score_version/eligible filter (defect carried from 01-04) ---
 
 
-def test_ineligible_and_stale_score_version_rows_are_excluded(tmp_path, monkeypatch):
-    db_path, conn = _seed_db(tmp_path)
+def test_ineligible_and_stale_score_version_rows_are_excluded(db, pg_env):
+    conn = db
     current = _insert_entity(conn, "1", full_name="owner/current-eligible")
     ineligible = _insert_entity(conn, "2", full_name="owner/ineligible")
     stale_version = _insert_entity(conn, "3", full_name="owner/stale-version")
@@ -383,9 +366,8 @@ def test_ineligible_and_stale_score_version_rows_are_excluded(tmp_path, monkeypa
         score_version=CURRENT_SCORE_VERSION - 1,
     )
     conn.commit()
-    conn.close()
 
-    client = _client(monkeypatch, db_path)
+    client = _client()
     response = client.get("/")
 
     assert response.status_code == 200
@@ -397,21 +379,20 @@ def test_ineligible_and_stale_score_version_rows_are_excluded(tmp_path, monkeypa
 # --- Regression: run_date dedup (scores carries one row per run_date) ---
 
 
-def test_entity_with_scores_across_two_run_dates_renders_exactly_once(tmp_path, monkeypatch):
+def test_entity_with_scores_across_two_run_dates_renders_exactly_once(db, pg_env):
     """`scores` is keyed on (entity_id, run_date, score_version) -- an entity
     that (for any reason) carries eligible rows at the same score_version
     across two different run_dates must still render as exactly one row,
     pinned to the most recent run_date, never once per run_date.
     """
-    db_path, conn = _seed_db(tmp_path)
+    conn = db
     entity_id = _insert_entity(conn, "1", full_name="owner/multi-run-date")
     _insert_score(conn, entity_id, run_date="2026-07-17", wilson_lower_bound=0.3)
     _insert_score(conn, entity_id, run_date="2026-07-18", wilson_lower_bound=0.5)
     _insert_score(conn, entity_id, run_date="2026-07-19", wilson_lower_bound=0.7)
     conn.commit()
-    conn.close()
 
-    client = _client(monkeypatch, db_path)
+    client = _client()
     response = client.get("/")
 
     assert response.status_code == 200
@@ -426,15 +407,12 @@ def test_entity_with_scores_across_two_run_dates_renders_exactly_once(tmp_path, 
 # --- V2/D-08a: three distinct empty states (no-run vs run-with-partial vs rows) ---
 
 
-def test_no_successful_run_ever_renders_no_data_yet_state(tmp_path, monkeypatch):
+def test_no_successful_run_ever_renders_no_data_yet_state(db, pg_env):
     """State (a): a totally empty run_manifest (no collector run has ever
     succeeded) renders the 'No data yet / run ingest' copy -- distinct from
     state (b) below, which must never fall through to this branch.
     """
-    db_path, conn = _seed_db(tmp_path)
-    conn.close()
-
-    client = _client(monkeypatch, db_path)
+    client = _client()
     response = client.get("/")
 
     assert response.status_code == 200
@@ -442,7 +420,7 @@ def test_no_successful_run_ever_renders_no_data_yet_state(tmp_path, monkeypatch)
     assert "Still building history" not in response.text
 
 
-def test_run_completed_but_nothing_eligible_renders_still_building_state(tmp_path, monkeypatch):
+def test_run_completed_but_nothing_eligible_renders_still_building_state(db, pg_env):
     """State (b): a run HAS completed successfully but every entity is
     still below the SCORE-03 floor (D-08a's expected first-week
     sparseness -- window_days=0/stars_gained=0 on day one). Must render the
@@ -451,7 +429,7 @@ def test_run_completed_but_nothing_eligible_renders_still_building_state(tmp_pat
     """
     from techtrend.pipeline.orchestrator import record_stage
 
-    db_path, conn = _seed_db(tmp_path)
+    conn = db
     record_stage(
         conn,
         "2026-07-19",
@@ -466,9 +444,8 @@ def test_run_completed_but_nothing_eligible_renders_still_building_state(tmp_pat
     _insert_score(conn, fresh_a, eligible=0, window_days=0)
     _insert_score(conn, fresh_b, eligible=0, window_days=1)
     conn.commit()
-    conn.close()
 
-    client = _client(monkeypatch, db_path)
+    client = _client()
     response = client.get("/")
 
     assert response.status_code == 200
@@ -484,15 +461,12 @@ def test_run_completed_but_nothing_eligible_renders_still_building_state(tmp_pat
 # --- CR-03: config/DB failures degrade to honest copy, never a traceback ---
 
 
-def test_malformed_toml_config_renders_db_error_not_traceback(tmp_path, monkeypatch):
+def test_malformed_toml_config_renders_db_error_not_traceback(db, pg_env, tmp_path, monkeypatch):
     bad_toml = tmp_path / "bad-tracked.toml"
     bad_toml.write_text("this is not valid toml [[[", encoding="utf-8")
     monkeypatch.setattr(config_module, "DEFAULT_CONFIG_PATH", bad_toml)
 
-    db_path, conn = _seed_db(tmp_path, name="config-error.db")
-    conn.close()
-
-    client = _client(monkeypatch, db_path)
+    client = _client()
     response = client.get("/")
 
     assert response.status_code == 200
@@ -501,11 +475,16 @@ def test_malformed_toml_config_renders_db_error_not_traceback(tmp_path, monkeypa
     assert "Traceback" not in response.text
 
 
-def test_corrupt_db_file_renders_db_error_not_traceback(tmp_path, monkeypatch):
-    db_path = tmp_path / "corrupt.db"
-    db_path.write_bytes(b"not a sqlite file at all")
+def test_corrupt_db_file_renders_db_error_not_traceback(pg_env, monkeypatch):
+    """There is no SQLite file to corrupt anymore -- storage is server-side
+    Postgres. The equivalent failure mode is an unreachable/unreadable
+    database: pointing PGDATABASE at a database that doesn't exist raises
+    psycopg.OperationalError, the same exception class app.py's except
+    clause degrades to DB_UNREADABLE_MESSAGE for.
+    """
+    monkeypatch.setenv("PGDATABASE", "techtrend_test_db_does_not_exist")
 
-    client = _client(monkeypatch, db_path)
+    client = _client()
     response = client.get("/")
 
     assert response.status_code == 200
@@ -531,7 +510,7 @@ def _insert_enrichment(
         INSERT INTO enrichments (
             entity_id, content_hash, status, summary_line_1, summary_line_2,
             section, confidence, low_confidence, computed_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
         (
             entity_id,
@@ -550,17 +529,16 @@ def _insert_enrichment(
 # --- ENR-06: enrichment failure/cap-overflow never removes a ranked row ---
 
 
-def test_unenriched_item_still_renders(tmp_path, monkeypatch):
+def test_unenriched_item_still_renders(db, pg_env):
     """An eligible entity with no `enrichments` row (cap overflow, fetch
     failure, or simply not enriched yet) must still appear in the ranked
     table -- D-10's 'summary pending' honest marker, never a dropped row."""
-    db_path, conn = _seed_db(tmp_path, name="unenriched.db")
+    conn = db
     entity_id = _insert_entity(conn, "1", full_name="owner/unenriched-repo")
     _insert_score(conn, entity_id, wilson_lower_bound=0.5, eligible=1)
     conn.commit()
-    conn.close()
 
-    client = _client(monkeypatch, db_path)
+    client = _client()
     response = client.get("/")
 
     assert response.status_code == 200
@@ -571,21 +549,20 @@ def test_unenriched_item_still_renders(tmp_path, monkeypatch):
 # --- DASH-02/D-13: ?section=X filters the ranked table ---
 
 
-def test_section_filter(tmp_path, monkeypatch):
+def test_section_filter(db, pg_env):
     """`?section=X` narrows the ranked table to that section's filings only
     (D-11/D-12); an unenriched item (no section yet) appears under the
     default 'All' view but drops out of every specific section filter
     (D-13)."""
-    db_path, conn = _seed_db(tmp_path, name="section-filter.db")
+    conn = db
     filed = _insert_entity(conn, "1", full_name="owner/filed-repo")
     unenriched = _insert_entity(conn, "2", full_name="owner/unenriched-repo")
     _insert_score(conn, filed, wilson_lower_bound=0.9, eligible=1)
     _insert_score(conn, unenriched, wilson_lower_bound=0.5, eligible=1)
     _insert_enrichment(conn, filed, section="agentic_coding_tools")
     conn.commit()
-    conn.close()
 
-    client = _client(monkeypatch, db_path)
+    client = _client()
 
     all_response = client.get("/")
     assert all_response.status_code == 200
@@ -598,19 +575,18 @@ def test_section_filter(tmp_path, monkeypatch):
     assert "owner/unenriched-repo" not in filtered_response.text
 
 
-def test_dashboard_never_writes_to_the_database(tmp_path, monkeypatch):
-    db_path, conn = _seed_db(tmp_path)
+def test_dashboard_never_writes_to_the_database(db, pg_env):
+    conn = db
     entity_id = _insert_entity(conn, "1", full_name="owner/read-only-check")
     _insert_score(conn, entity_id, wilson_lower_bound=0.5)
     conn.commit()
-    conn.close()
 
-    client = _client(monkeypatch, db_path)
+    client = _client()
 
     def _counts():
-        check = connect(db_path)
+        check = connect()
         result = {
-            table: check.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+            table: check.execute(f"SELECT COUNT(*) AS n FROM {table}").fetchone()["n"]
             for table in ("entities", "snapshots", "scores", "run_manifest")
         }
         check.close()
