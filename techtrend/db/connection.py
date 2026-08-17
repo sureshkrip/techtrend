@@ -1,40 +1,55 @@
-"""WAL-mode SQLite connection helper and schema bootstrap.
+"""psycopg3 connection helper and schema bootstrap.
 
 RESEARCH.md's concurrency note: one connection per caller, never a shared
-cross-thread connection -- check_same_thread is left at its default True.
+cross-thread connection.
 """
 
-import sqlite3
+import os
 from pathlib import Path
 
-from techtrend import paths
+import psycopg
+from psycopg.rows import dict_row
 
 _SCHEMA_PATH = Path(__file__).resolve().parent / "schema.sql"
 
-# Env-overridable (TECHTREND_DB / TECHTREND_DATA_DIR) so a container can write to
-# a persistent volume; defaults to repo-relative techtrend.db for local dev.
-DEFAULT_DB_PATH = paths.DB_PATH
 
+def connect(conninfo: str | None = None) -> psycopg.Connection:
+    """Open a psycopg3 connection with dict-row results.
 
-def connect(db_path: Path | None = None) -> sqlite3.Connection:
-    """Open a SQLite connection with WAL journaling and a busy timeout.
+    Preserves the zero-arg call form (`connect()` in production). When
+    `conninfo` is None, the connection is built from five discrete env vars:
+    PGHOST (default "localhost"), PGPORT (default "5432"), PGDATABASE
+    (default "techtrend"), PGUSER (default "techuser"), and PGPASSWORD (read
+    from the environment, no default -- may be absent). This is the ONLY
+    read of PGPASSWORD anywhere in techtrend/** (mirroring how
+    ANTHROPIC_API_KEY lives only in pipeline/llm.py and OPENAI_API_KEY only
+    in pipeline/llm_openai.py).
 
-    Sets row_factory to sqlite3.Row and enables foreign key enforcement.
-    Does NOT bootstrap the schema -- call init_db(conn) separately.
+    When `conninfo` is provided (the test fixture's injection seam), it is
+    used verbatim and no PG* env vars are read.
+
+    Sets row_factory=dict_row so every existing `row["col"]` / `dict(row)`
+    call site keeps working.
     """
-    resolved = db_path if db_path is not None else DEFAULT_DB_PATH
-    resolved.parent.mkdir(parents=True, exist_ok=True)
+    if conninfo is None:
+        host = os.environ.get("PGHOST", "localhost")
+        port = os.environ.get("PGPORT", "5432")
+        dbname = os.environ.get("PGDATABASE", "techtrend")
+        user = os.environ.get("PGUSER", "techuser")
+        password = os.environ.get("PGPASSWORD")
+        conninfo = psycopg.conninfo.make_conninfo(
+            host=host,
+            port=port,
+            dbname=dbname,
+            user=user,
+            **({"password": password} if password else {}),
+        )
 
-    conn = sqlite3.connect(resolved)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA busy_timeout=5000")
-    conn.execute("PRAGMA foreign_keys=ON")
-    return conn
+    return psycopg.connect(conninfo, row_factory=dict_row)
 
 
-def init_db(conn: sqlite3.Connection) -> None:
-    """Bootstrap the four-table schema. Idempotent -- safe to call more than once."""
+def init_db(conn: psycopg.Connection) -> None:
+    """Bootstrap the five-table schema. Idempotent -- safe to call more than once."""
     schema_sql = _SCHEMA_PATH.read_text(encoding="utf-8")
-    conn.executescript(schema_sql)
+    conn.cursor().execute(schema_sql)
     conn.commit()

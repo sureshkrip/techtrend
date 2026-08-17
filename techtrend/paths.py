@@ -1,13 +1,14 @@
 """Env-overridable filesystem paths for all mutable state.
 
-Local dev keeps the original layout (repo-relative `techtrend.db`, `.hishel/`,
-`logs/`). A containerized deploy points these at a persistent volume instead of
-the ephemeral container filesystem — without which every redeploy silently
-wipes the accumulated snapshot history that is the whole point of the tool.
+Local dev keeps the original layout (`.hishel/`, `logs/`). A containerized
+deploy points these at a persistent volume instead of the ephemeral container
+filesystem — without which every redeploy silently wipes the accumulated
+HTTP cache and log history. Storage itself is server-side PostgreSQL (see
+techtrend/db/connection.py) and has no filesystem path here.
 
 The simplest deploy knob is `TECHTREND_DATA_DIR` (e.g. `/data`, a mounted
-volume): the DB, HTTP cache, and log file all relocate under it. Each path also
-has an individual override for finer control. `config/tracked.toml` deliberately
+volume): the HTTP cache and log file relocate under it. Each path also has an
+individual override for finer control. `config/tracked.toml` deliberately
 does NOT follow `TECHTREND_DATA_DIR` — it is baked into the image as read-only
 config, not runtime state; override it explicitly with `TECHTREND_CONFIG` only
 if you mount an editable config.
@@ -39,7 +40,6 @@ def _resolve(env_key: str, subpath: str, bare_default: str) -> Path:
     return Path(bare_default)
 
 
-DB_PATH = _resolve("TECHTREND_DB", "techtrend.db", "techtrend.db")
 CACHE_DIR = _resolve("TECHTREND_CACHE_DIR", ".hishel", ".hishel")
 CACHE_DB = CACHE_DIR / "github.db"
 LOG_FILE = _resolve("TECHTREND_LOG_FILE", "logs/techtrend.log", "logs/techtrend.log")
