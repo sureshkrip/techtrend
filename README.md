@@ -8,6 +8,8 @@ A personal, self-updating intelligence dashboard for the AI-coding and LLM ecosy
 
 - **Python 3.12+** (the Docker image uses 3.13)
 - **[uv](https://github.com/astral-sh/uv)** for dependency management
+- **A running PostgreSQL server** for real (non-test) runs, with a `techtrend` database and a `techuser` role. Connection is configured via discrete env vars: `PGHOST` (default `localhost`), `PGPORT` (default `5432`), `PGDATABASE` (default `techtrend`), `PGUSER` (default `techuser`), `PGPASSWORD` (set in your `.env`; no default).
+- **Local PostgreSQL binaries on `PATH`** (`initdb` / `pg_ctl`) to run the test suite — `pytest-postgresql` provisions a throwaway cluster per run from these binaries and needs no Docker and no already-running server.
 
 ## Install
 
@@ -25,9 +27,10 @@ This creates a `.venv/` with all pinned dependencies from `uv.lock`.
    cp .env.example .env
    ```
 
-2. Set the two credentials in `.env`:
+2. Set the credentials in `.env`:
    - **`GITHUB_TOKEN`** — required for live collection and stargazer backfill (a valid, unexpired token; requests fail with `401` otherwise).
    - **`ANTHROPIC_API_KEY`** — required for the enrichment stage (two-line summaries + section assignment via Claude Haiku). This is the default provider — skip the rest of this bullet if you're not switching providers.
+   - **`PGPASSWORD`** — the password for your PostgreSQL `techuser` role (see Prerequisites). `PGHOST`/`PGPORT`/`PGDATABASE`/`PGUSER` default to `localhost`/`5432`/`techtrend`/`techuser` and only need to be set if your server differs.
 
 Other configuration:
 - **Tunables** (ranking window, floors, caps, section taxonomy) live in `config/tracked.toml`. Point at a different file with `TECHTREND_CONFIG=/path/to/config.toml`.
@@ -39,7 +42,7 @@ Other configuration:
   # enrichment_base_url = "https://api.moonshot.ai/v1"  # optional, this is the default
   ```
   and set **`OPENAI_API_KEY`** in `.env`.
-- **Data location** (SQLite DB, HTTP cache, logs) defaults to the repo root. Override with `TECHTREND_DATA_DIR=/path/to/data`. The database initializes itself on first run — there is no separate migration step.
+- **Data location** — storage is PostgreSQL (see Prerequisites), not a filesystem path. The HTTP cache and log file still default to the repo root; override with `TECHTREND_DATA_DIR=/path/to/data`. The database schema initializes itself on first run against the configured Postgres server — there is no separate migration step.
 
 ## Run
 
@@ -78,20 +81,23 @@ Then open **http://localhost:8000**. The dashboard is strictly read-only — it 
 pytest
 ```
 
+Requires local PostgreSQL binaries (`initdb` / `pg_ctl`) on `PATH` — `pytest-postgresql` provisions a throwaway cluster per test run automatically; no Docker and no running server needed.
+
 ## Deploy (Docker / Coolify)
 
-The included `Dockerfile` builds a single image that serves the dashboard; the daily pipeline runs as a scheduled task inside the same container, sharing a persistent volume.
+The included `Dockerfile` builds a single image that serves the dashboard; the daily pipeline runs as a scheduled task inside the same container, both connecting to the same PostgreSQL server.
 
 1. Build the image (Coolify does this from the repo).
-2. **Mount a persistent volume at `/data`** and set `TECHTREND_DATA_DIR=/data` — without it, the database and history are wiped on every redeploy.
-3. Set the secrets `GITHUB_TOKEN` and `ANTHROPIC_API_KEY` in the deploy environment.
-4. Configure a **scheduled task** to run the daily pipeline:
+2. **Point the app at a durable PostgreSQL server** — set `PGHOST`/`PGPORT`/`PGDATABASE`/`PGUSER`/`PGPASSWORD` in the deploy environment. This is where snapshot history now lives; it is not affected by container redeploys.
+3. Optionally mount a persistent volume at `/data` and set `TECHTREND_DATA_DIR=/data` to persist the HTTP cache and logs across redeploys (not required for data durability — that's the Postgres server's job now).
+4. Set the secrets `GITHUB_TOKEN` and `ANTHROPIC_API_KEY` in the deploy environment.
+5. Configure a **scheduled task** to run the daily pipeline:
 
    ```bash
    python -m techtrend.daily
    ```
 
-5. The container's default command serves the dashboard on port `8000` via `uvicorn` — serving and the scheduled pipeline run are independent (serving never triggers collection).
+6. The container's default command serves the dashboard on port `8000` via `uvicorn` — serving and the scheduled pipeline run are independent (serving never triggers collection).
 
 ## First run is sparse — this is expected
 
