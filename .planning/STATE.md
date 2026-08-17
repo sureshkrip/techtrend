@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-08-14)
 Phase: 3 — Source Breadth — Discourse, Downloads & Changelogs
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-08-16 — Quick task 260816-lkt: added `python -m techtrend.daily` full-pipeline entrypoint
+Last activity: 2026-08-17 — Completed quick task 260817-09l: OpenAI-compatible LLM provider (Kimi/Moonshot)
 
 Progress: [██████████] 100%
 
@@ -125,6 +125,7 @@ None yet.
 |---|-------------|------|--------|-----------|
 | 260816-lkt | Single daily-pipeline entrypoint (`python -m techtrend.daily`) chaining collect→score→enrich with fail-fast exit-code propagation; Dockerfile scheduled-task guidance updated | 2026-08-16 | cbfb874 | [260816-lkt-add-a-single-daily-pipeline-entrypoint-t](./quick/260816-lkt-add-a-single-daily-pipeline-entrypoint-t/) |
 | 2 | Add README.md with setup/run/deploy instructions (verified commands) | 2026-08-17 | 2954025 | — |
+| 260817-09l | OpenAI-compatible LLM provider (Kimi/Moonshot) as config-selectable alternative to Anthropic for enrichment; default stays Anthropic Haiku 4.5 | 2026-08-17 | ef50e98 | [260817-09l-add-openai-compatible-llm-provider-kimi-](./quick/260817-09l-add-openai-compatible-llm-provider-kimi-/) |
 
 ## Deferred Items
 
