@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-08-14)
 Phase: 3 — Source Breadth — Discourse, Downloads & Changelogs
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-08-17 — Completed quick task 260817-09l: OpenAI-compatible LLM provider (Kimi/Moonshot)
+Last activity: 2026-08-17 — Quick task 260817-0qt: SQLite→PostgreSQL migration (code complete; suite unverified — blocked on local PG install + 7 SQLite-bound test files)
 
 Progress: [██████████] 100%
 
@@ -121,11 +121,12 @@ None yet.
 
 ### Quick Tasks Completed
 
-| # | Description | Date | Commit | Directory |
-|---|-------------|------|--------|-----------|
-| 260816-lkt | Single daily-pipeline entrypoint (`python -m techtrend.daily`) chaining collect→score→enrich with fail-fast exit-code propagation; Dockerfile scheduled-task guidance updated | 2026-08-16 | cbfb874 | [260816-lkt-add-a-single-daily-pipeline-entrypoint-t](./quick/260816-lkt-add-a-single-daily-pipeline-entrypoint-t/) |
-| 2 | Add README.md with setup/run/deploy instructions (verified commands) | 2026-08-17 | 2954025 | — |
-| 260817-09l | OpenAI-compatible LLM provider (Kimi/Moonshot) as config-selectable alternative to Anthropic for enrichment; default stays Anthropic Haiku 4.5 | 2026-08-17 | ef50e98 | [260817-09l-add-openai-compatible-llm-provider-kimi-](./quick/260817-09l-add-openai-compatible-llm-provider-kimi-/) |
+| # | Description | Date | Commit | Status | Directory |
+|---|-------------|------|--------|--------|-----------|
+| 260816-lkt | Single daily-pipeline entrypoint (`python -m techtrend.daily`) chaining collect→score→enrich with fail-fast exit-code propagation; Dockerfile scheduled-task guidance updated | 2026-08-16 | cbfb874 | | [260816-lkt-add-a-single-daily-pipeline-entrypoint-t](./quick/260816-lkt-add-a-single-daily-pipeline-entrypoint-t/) |
+| 2 | Add README.md with setup/run/deploy instructions (verified commands) | 2026-08-17 | 2954025 | | — |
+| 260817-09l | OpenAI-compatible LLM provider (Kimi/Moonshot) as config-selectable alternative to Anthropic for enrichment; default stays Anthropic Haiku 4.5 | 2026-08-17 | ef50e98 | Complete | [260817-09l-add-openai-compatible-llm-provider-kimi-](./quick/260817-09l-add-openai-compatible-llm-provider-kimi-/) |
+| 260817-0qt | Migrate storage backend SQLite→PostgreSQL (psycopg3). Code complete: DB layer, schema DDL, all SQL paramstyle rewritten, no sqlite3 left, PGPASSWORD isolated, provider tests pass. Suite UNVERIFIED — blocked on (a) no local PG binaries and (b) 7 test files still hard-code SQLite mechanics (see deferred-items). | 2026-08-17 | 13d28e8 | Gaps (blocked) | [260817-0qt-migrate-storage-backend-from-sqlite-to-p](./quick/260817-0qt-migrate-storage-backend-from-sqlite-to-p/) |
 
 ## Deferred Items
 
