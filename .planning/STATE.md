@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-08-14)
 Phase: 3 — Source Breadth — Discourse, Downloads & Changelogs
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-08-17 — Completed quick task 260817-0qt: SQLite→PostgreSQL migration, full suite green (142 passed) on local PostgreSQL 17
+Last activity: 2026-08-17 — Completed quick task 260817-jii: switched enrichment LLM provider to GLM-4.7-Flash (Zhipu/Z.ai) via config-only edit
 
 Progress: [██████████] 100%
 
@@ -127,6 +127,7 @@ None yet.
 | 2 | Add README.md with setup/run/deploy instructions (verified commands) | 2026-08-17 | 2954025 | | — |
 | 260817-09l | OpenAI-compatible LLM provider (Kimi/Moonshot) as config-selectable alternative to Anthropic for enrichment; default stays Anthropic Haiku 4.5 | 2026-08-17 | ef50e98 | Complete | [260817-09l-add-openai-compatible-llm-provider-kimi-](./quick/260817-09l-add-openai-compatible-llm-provider-kimi-/) |
 | 260817-0qt | Migrate storage backend SQLite→PostgreSQL (psycopg3): DB layer, schema DDL, all SQL paramstyle across ingest/pipeline/server, no sqlite3 left, PGPASSWORD isolated to db/connection.py, ephemeral-PG pytest harness + 10 test files migrated. Full suite GREEN (142 passed) on local PostgreSQL 17; provider work (260817-09l) intact. | 2026-08-17 | 1a0a21e | Complete | [260817-0qt-migrate-storage-backend-from-sqlite-to-p](./quick/260817-0qt-migrate-storage-backend-from-sqlite-to-p/) |
+| 260817-jii | Switch enrichment LLM provider to GLM-4.7-Flash (Zhipu/Z.ai) via the existing OpenAI-compatible path (260817-09l): config-only edit to `config/tracked.toml` [tunables] (`enrichment_provider=openai`, `enrichment_base_url=https://api.z.ai/api/paas/v4/`, `enrichment_model=glm-4.7-flash`); Z.ai key in `.env` as `OPENAI_API_KEY` (gitignored). No .py changes; `load_config()` verified + `test_llm_openai.py` 5 passed. | 2026-08-17 | cc39a9f | Complete | [260817-jii-switch-llm-enrichment-provider-to-glm-4-](./quick/260817-jii-switch-llm-enrichment-provider-to-glm-4-/) |
 
 ## Deferred Items
 
