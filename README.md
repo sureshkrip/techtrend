@@ -29,19 +29,19 @@ This creates a `.venv/` with all pinned dependencies from `uv.lock`.
 
 2. Set the credentials in `.env`:
    - **`GITHUB_TOKEN`** — required for live collection and stargazer backfill (a valid, unexpired token; requests fail with `401` otherwise).
-   - **`ANTHROPIC_API_KEY`** — required for the enrichment stage (two-line summaries + section assignment via Claude Haiku). This is the default provider — skip the rest of this bullet if you're not switching providers.
+   - **`OPENAI_API_KEY`** — required for the enrichment stage (two-line summaries + section assignment). This is the required secret for the deployed default enrichment provider, GLM (Zhipu/Z.ai) via the OpenAI-compatible endpoint — see `enrichment_provider = "openai"` below. Anthropic Claude remains a documented alternative provider (set `ANTHROPIC_API_KEY` instead if you switch `enrichment_provider` back to `"anthropic"`). Neither key is required if `TECHTREND_DISABLE_LLM` is set (see below).
    - **`PGPASSWORD`** — the password for your PostgreSQL `techuser` role (see Prerequisites). `PGHOST`/`PGPORT`/`PGDATABASE`/`PGUSER` default to `localhost`/`5432`/`techtrend`/`techuser` and only need to be set if your server differs.
 
 Other configuration:
 - **Tunables** (ranking window, floors, caps, section taxonomy) live in `config/tracked.toml`. Point at a different file with `TECHTREND_CONFIG=/path/to/config.toml`.
-- **Alternative LLM provider (Kimi/Moonshot)** — the enrichment stage defaults to Anthropic Haiku 4.5. To route it to Kimi/Moonshot's OpenAI-compatible endpoint instead, set under `[tunables]` in `config/tracked.toml`:
+- **Enrichment provider** — the shipped default (`config/tracked.toml`) is GLM-4.7-Flash (Zhipu/Z.ai) via the OpenAI-compatible endpoint (`enrichment_provider = "openai"`, `enrichment_model = "glm-4.7-flash"`, `enrichment_base_url = "https://api.z.ai/api/paas/v4/"`), using `OPENAI_API_KEY` as set above. Any OpenAI-compatible endpoint works the same way — e.g. to route to Kimi/Moonshot instead, set under `[tunables]` in `config/tracked.toml`:
   ```toml
   [tunables]
   enrichment_provider = "openai"
   enrichment_model = "kimi-k2.5"
-  # enrichment_base_url = "https://api.moonshot.ai/v1"  # optional, this is the default
+  enrichment_base_url = "https://api.moonshot.ai/v1"
   ```
-  and set **`OPENAI_API_KEY`** in `.env`.
+  Anthropic Claude is also a documented alternative — set `enrichment_provider = "anthropic"` and `ANTHROPIC_API_KEY` in `.env` instead. In every case, only the key matching the active `enrichment_provider` is required, and neither is required if `TECHTREND_DISABLE_LLM` is set.
 - **`TECHTREND_DISABLE_LLM`** — a runtime env switch (truthy values `1`/`true`/`yes`/`on`)
   that skips the enrichment LLM/summary stage entirely: when set, no LLM calls are made
   and neither `OPENAI_API_KEY` nor `ANTHROPIC_API_KEY` is required. The pipeline still
@@ -95,14 +95,13 @@ The included `Dockerfile` builds a single image that serves the dashboard; the d
 1. Build the image (Coolify does this from the repo).
 2. **Point the app at a durable PostgreSQL server** — set `PGHOST`/`PGPORT`/`PGDATABASE`/`PGUSER`/`PGPASSWORD` in the deploy environment. This is where snapshot history now lives; it is not affected by container redeploys.
 3. Optionally mount a persistent volume at `/data` and set `TECHTREND_DATA_DIR=/data` to persist the HTTP cache and logs across redeploys (not required for data durability — that's the Postgres server's job now).
-4. Set the secrets `GITHUB_TOKEN` and `ANTHROPIC_API_KEY` in the deploy environment.
-5. Configure a **scheduled task** to run the daily pipeline:
-
-   ```bash
-   python -m techtrend.daily
-   ```
-
-6. The container's default command serves the dashboard on port `8000` via `uvicorn` — serving and the scheduled pipeline run are independent (serving never triggers collection).
+4. Set the secrets `GITHUB_TOKEN` (collection/backfill) and `OPENAI_API_KEY` (the deployed GLM enrichment provider) in the deploy environment. Set `TECHTREND_DISABLE_LLM=1` instead if you want the scheduled run to only collect + score, with no LLM key required at all.
+5. **Configure a Coolify Scheduled Task** to run the daily pipeline — this is the mechanism that makes the pipeline run automatically once per day (SCHED-01):
+   - **Command:** `python -m techtrend.daily` — the single chained entrypoint that runs collect → score → enrich in order, fail-fast (the first stage to fail halts the chain and the run is recorded accordingly).
+   - **Schedule:** a daily cron expression, defaulting to `0 6 * * *` (06:00 UTC) — adjust the time to taste.
+   - **Environment:** the scheduled task runs inside the same container/image as the dashboard, so it inherits the same deploy environment set in steps 2 and 4 above (PG* connection vars, `GITHUB_TOKEN`, `OPENAI_API_KEY` or `TECHTREND_DISABLE_LLM`).
+6. The container's default command serves the dashboard on port `8000` via `uvicorn` — **serving and the scheduled pipeline run are independent** (D-17): the dashboard never triggers a pipeline run on request, and the scheduled task never depends on the dashboard being open or receiving traffic.
+7. **Missed-run handling is cron-only, by design — no catch-up/backfill code.** If the container is down at the scheduled fire time, that day is simply skipped; there is no wake-timer or run-if-missed mechanism (that was the original Windows-desktop scoping, superseded now that the deployment is an always-on hosted server — see ROADMAP.md Phase 4). A skipped day is still made visible, not silent: the dashboard's existing "Last successful run: …" / "Data may be out of date — last successful run was …" staleness banner (`techtrend/server/health.py`) reflects it immediately on next load.
 
 ## First run is sparse — this is expected
 
