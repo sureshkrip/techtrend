@@ -125,12 +125,12 @@ Plans:
 
 **Supersession note:** Phase 4 was originally scoped around Windows Task Scheduler with wake/missed-run settings, matching the project's original local-only/SQLite deployment assumption. When deployment moved to hosted Coolify with server-side PostgreSQL (quick task 260817-0qt, consistent with the CLAUDE.md deployment reversal), Phase 4 was rescoped to the Coolify Scheduled Task (cron) model on 2026-08-19. Recorded here as decision history, not silently rewritten.
 
-**Plans**: 1 plan
+**Plans**: 1/1 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 04-01-PLAN.md — Rescope Phase 4 to the Coolify Scheduled Task model (ROADMAP + REQUIREMENTS), document the exact cron/`python -m techtrend.daily` deploy setup in README, and verify SC1/SC3 are met by existing code with SC2 superseded
+- [x] 04-01-PLAN.md — Rescope Phase 4 to the Coolify Scheduled Task model (ROADMAP + REQUIREMENTS), document the exact cron/`python -m techtrend.daily` deploy setup in README, and verify SC1/SC3 are met by existing code with SC2 superseded
 
 ## Progress
 
@@ -142,7 +142,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Foundation & First Signal | 6/6 | Complete    | 2026-08-13 |
 | 2. Cost-Gated LLM Enrichment | 5/5 | Complete    | 2026-08-14 |
 | 3. Source Breadth | 0/TBD | Not started | - |
-| 4. Autonomous Daily Scheduling | 0/TBD | Not started | - |
+| 4. Autonomous Daily Scheduling | 1/1 | In Progress|  |
 
 ## Backlog
 

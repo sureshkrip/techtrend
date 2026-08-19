@@ -55,8 +55,8 @@
 
 ### Scheduling
 
-- [ ] **SCHED-01**: The full pipeline runs automatically once per day without user action, on the deployed environment
-- [ ] **SCHED-02**: ~~Scheduled run is configured to survive sleep/missed-window conditions on Windows~~ **(superseded 2026-08-19 — see Phase 4 rescope):** the Windows wake-timer/run-if-missed criterion is N/A on the always-on hosted Coolify deployment. The hosted equivalent: a skipped day (container down at cron fire time) is surfaced by the existing dashboard staleness banner (HEALTH-02), not by wake/sleep handling
+- [x] **SCHED-01**: The full pipeline runs automatically once per day without user action, on the deployed environment
+- [x] **SCHED-02**: ~~Scheduled run is configured to survive sleep/missed-window conditions on Windows~~ **(superseded 2026-08-19 — see Phase 4 rescope):** the Windows wake-timer/run-if-missed criterion is N/A on the always-on hosted Coolify deployment. The hosted equivalent: a skipped day (container down at cron fire time) is surfaced by the existing dashboard staleness banner (HEALTH-02), not by wake/sleep handling
 
 ### Health
 

@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 3
 current_phase_name: Source Breadth — Discourse, Downloads & Changelogs
 status: planning
-stopped_at: Completed 02-05-PLAN.md
-last_updated: "2026-08-17T03:14:46.102Z"
-last_activity: 2026-08-16
-last_activity_desc: "Quick task 260816-lkt: added `python -m techtrend.daily` full-pipeline entrypoint"
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-08-19T13:09:53.675Z"
+last_activity: 2026-08-19
+last_activity_desc: "Completed 04-01-PLAN.md: rescoped Phase 4 (SCHED-01/SCHED-02) from Windows Task Scheduler to the hosted Coolify Scheduled Task model; README deploy docs + verification done. Phase 4 executed ahead of Phase 3 at the owner's explicit request (04-CONTEXT.md); Phase 3 remains the next phase to plan."
 progress:
-  total_phases: 3
-  completed_phases: 2
-  total_plans: 11
-  completed_plans: 11
+  total_phases: 4
+  completed_phases: 3
+  total_plans: 12
+  completed_plans: 12
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-08-14)
 Phase: 3 — Source Breadth — Discourse, Downloads & Changelogs
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-08-18 — Completed quick task 260818-sbl: added TECHTREND_DISABLE_LLM env kill-switch for the enrichment LLM stage (154 passed)
+Last activity: 2026-08-19 — Completed 04-01-PLAN.md: rescoped Phase 4 (SCHED-01/SCHED-02) from Windows Task Scheduler to the hosted Coolify Scheduled Task model; README deploy docs + verification done. Phase 4 executed ahead of Phase 3 at the owner's explicit request (04-CONTEXT.md); Phase 3 remains the next phase to plan.
 
 Progress: [██████████] 100%
 
@@ -69,6 +69,7 @@ Progress: [██████████] 100%
 | Phase 02 P02 | 12min | 3 tasks | 4 files |
 | Phase 02 P04 | 8min | 2 tasks | 3 files |
 | Phase 02 P05 | 15min | 3 tasks | 6 files |
+| Phase 04 P01 | 5min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -108,6 +109,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 02-05: query_ranked LEFT JOINs enrichments on the MAX(computed_at) idiom + bound :section param; query_section_counts pinned to the same eligible/current-version/MAX(run_date) seam, excluding null sections (D-13)
 - [Phase ?]: 02-05: every htmx link (sidebar + sort headers) carries both sort and section, reusing the identical hx-target/hx-swap/hx-push-url/hx-indicator set, so neither control resets the other (Pitfall #5)
 - [Phase ?]: 02-05: Task 3 human-verify checkpoint structurally accepted per user instruction (135/135 automated + acceptance-criteria greps + static template review); live visual/anti-fabrication walkthrough deferred as UAT, mirroring Phase 1 precedent
+- [Phase ?]: [04-01]: Phase 4 rescoped in-place (ROADMAP + REQUIREMENTS) rather than superseded with a new requirement ID -- SCHED-01/SCHED-02 keep their IDs and Phase 4 mapping, with Windows-specific wording struck through and an explicit superseded note added
+- [Phase ?]: [04-01]: README's stale Kimi/Moonshot bullet (claimed enrichment defaults to Anthropic Haiku 4.5) corrected beyond the plan's literal Deploy-section scope -- it directly contradicted the actual config/tracked.toml default (GLM/openai) and the immediately-preceding corrected bullet (Rule 1 bug fix)
 
 ### Pending Todos
 
@@ -146,6 +149,6 @@ Items acknowledged and carried forward from phase/milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-14
-Stopped at: Phase 2 complete (UAT passed, security verified — 15 threats closed / 0 open), ready to plan Phase 3
+Last session: 2026-08-19T13:09:10.720Z
+Stopped at: Completed 04-01-PLAN.md
 Resume file: None
