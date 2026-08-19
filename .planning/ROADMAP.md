@@ -123,7 +123,12 @@ Plans:
   2. If the machine was asleep or off at the scheduled time, the run still executes (wake timers, wake-to-run, and run-if-missed are all explicitly configured) rather than silently skipping that day.
   3. The dashboard's "last successful run" indicator reflects a same-day refresh under normal conditions, so a missed run is immediately visible without digging into Task Scheduler.
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+**Wave 1**
+
+- [ ] 04-01-PLAN.md — Rescope Phase 4 to the Coolify Scheduled Task model (ROADMAP + REQUIREMENTS), document the exact cron/`python -m techtrend.daily` deploy setup in README, and verify SC1/SC3 are met by existing code with SC2 superseded
 
 ## Progress
 
