@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation & First Signal — GitHub, Scored and Visible** - Schema, backfilled GitHub collector, confidence-bounded velocity scorer, and a minimal dashboard — real ranked data, visible, before any LLM spend (completed 2026-08-13)
 - [x] **Phase 2: Cost-Gated LLM Enrichment** - Gate + hard cap + LLM summarize/classify into the seven sections, cached by content hash, never losing ranked data on failure (completed 2026-08-14)
 - [ ] **Phase 3: Source Breadth — Discourse, Downloads & Changelogs** - Hacker News, npm/PyPI, and vendor changelogs added through the existing collector plugin interface
-- [ ] **Phase 4: Autonomous Daily Scheduling** - Windows Task Scheduler wired with wake/missed-run settings so the pipeline runs unattended every day
+- [ ] **Phase 4: Autonomous Daily Scheduling** - Coolify Scheduled Task (cron) fires `python -m techtrend.daily` so the pipeline runs unattended every day on the hosted deployment
 
 ## Phase Details
 
@@ -113,15 +113,17 @@ Plans:
 
 ### Phase 4: Autonomous Daily Scheduling
 
-**Goal**: The full pipeline runs on its own every day, including across sleep/wake cycles on Windows, so the dashboard is always current when the user opens it without them remembering to trigger anything.
+**Goal**: The full collect → score → enrich pipeline runs automatically once per day on the always-on hosted Coolify deployment, fired by a Coolify Scheduled Task (cron) invoking `python -m techtrend.daily`, so the dashboard is always current when the user opens it without them remembering to trigger anything. A missed run is made visible by the existing staleness banner, not by wake/sleep handling.
 **Mode:** mvp
 **Depends on**: Phase 1, Phase 2, Phase 3
 **Requirements**: SCHED-01, SCHED-02
 **Success Criteria** (what must be TRUE):
 
   1. The full collect → score → enrich pipeline runs automatically once per day with no manual action from the user.
-  2. If the machine was asleep or off at the scheduled time, the run still executes (wake timers, wake-to-run, and run-if-missed are all explicitly configured) rather than silently skipping that day.
-  3. The dashboard's "last successful run" indicator reflects a same-day refresh under normal conditions, so a missed run is immediately visible without digging into Task Scheduler.
+  2. ~~If the machine was asleep or off at the scheduled time, the run still executes (wake timers, wake-to-run, and run-if-missed are all explicitly configured) rather than silently skipping that day.~~ **Superseded 2026-08-19 (Phase 4 rescope):** wake/sleep/run-if-missed is Windows-desktop-specific and N/A on an always-on hosted server. The hosted equivalent — a missed day is skipped by cron, not silently: the existing "last successful run" staleness banner (health.py) surfaces it — is criterion 3 below.
+  3. The dashboard's "last successful run" indicator reflects a same-day refresh under normal conditions, so a missed run is immediately visible. Already satisfied by the existing `techtrend/server/health.py` staleness banner (HEALTH-02) — verified, not rebuilt, in this phase.
+
+**Supersession note:** Phase 4 was originally scoped around Windows Task Scheduler with wake/missed-run settings, matching the project's original local-only/SQLite deployment assumption. When deployment moved to hosted Coolify with server-side PostgreSQL (quick task 260817-0qt, consistent with the CLAUDE.md deployment reversal), Phase 4 was rescoped to the Coolify Scheduled Task (cron) model on 2026-08-19. Recorded here as decision history, not silently rewritten.
 
 **Plans**: 1 plan
 
