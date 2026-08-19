@@ -146,6 +146,7 @@ Items acknowledged and carried forward from phase/milestone close:
 | UAT (design) | Visual density at real row counts — D-08a, no populated state yet (01-06 D9) | Deferred | 2026-08-13 |
 | UAT (browser) | DB-unreadable graceful-degradation copy — repeat vs renamed real DB (01-06 D10) | Deferred | 2026-08-13 |
 | UAT (token) | Live section browsing + anti-fabrication summary spot-check — needs ANTHROPIC_API_KEY + a fresh collect/score/enrich run against real data (02-05 Task 3) | ✓ Resolved (UAT pass 2026-08-14) | 2026-08-15 |
+| UAT (deploy) | Live Coolify Scheduled Task fire — create the cron task in the hosted Coolify dashboard and confirm an unattended `python -m techtrend.daily` run end-to-end (Phase 4 SC1, 04-VERIFICATION.md human_needed) | Deferred | 2026-08-19 |
 
 ## Session Continuity
 
