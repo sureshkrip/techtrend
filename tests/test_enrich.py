@@ -10,9 +10,15 @@ Anthropic call anywhere -- grounding fetch, content-hash computation, and
 the LLM call are all injected via optional-parameter seams so the
 orchestration logic is testable in isolation. Imports are inside each test
 function so `pytest --collect-only` succeeds cleanly at Wave 0.
+
+The `TECHTREND_DISABLE_LLM` tests below (quick task 260818-sbl) live in this
+same file since they exercise `techtrend.enrich.main()` -- the module under
+test throughout this file -- rather than the pipeline orchestration loop.
 """
 
 from datetime import date
+
+import pytest
 
 from techtrend.pipeline.score import CURRENT_SCORE_VERSION
 
@@ -260,3 +266,84 @@ def test_per_candidate_failure_does_not_abort_run(db):
     ).fetchone()
     assert healthy_row is not None
     assert healthy_row["status"] == "complete"
+
+
+# --- TECHTREND_DISABLE_LLM: runtime kill-switch (quick task 260818-sbl) ---
+
+
+def test_disable_llm_switch_skips_enrichment(db, monkeypatch):
+    from unittest.mock import Mock
+
+    import techtrend.enrich as enrich_mod
+
+    conn = db
+    monkeypatch.setenv("TECHTREND_DISABLE_LLM", "1")
+
+    run_enrichment_mock = Mock()
+    monkeypatch.setattr(enrich_mod, "run_enrichment", run_enrichment_mock)
+    monkeypatch.setattr(enrich_mod, "connect", lambda *a, **k: conn)
+    monkeypatch.setattr(enrich_mod, "init_db", lambda *a, **k: None)
+    # main() closes conn on the disabled path -- prevent it from closing the
+    # shared `db` fixture connection out from under the fixture's own teardown.
+    monkeypatch.setattr(conn, "close", lambda: None)
+
+    exit_code = enrich_mod.main([])
+
+    assert exit_code == 0
+    run_enrichment_mock.assert_not_called()
+
+    row = conn.execute(
+        "SELECT status, item_count FROM run_manifest WHERE stage = 'enrich'"
+    ).fetchone()
+    assert row is not None
+    assert row["status"] == "disabled"
+    assert row["item_count"] == 0
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["1", "true", "TRUE", "yes", "on"],
+)
+def test_llm_disabled_truthy_values(value, monkeypatch):
+    from techtrend.enrich import _llm_disabled
+
+    monkeypatch.setenv("TECHTREND_DISABLE_LLM", value)
+    assert _llm_disabled() is True
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["0", "false", "", "maybe"],
+)
+def test_llm_disabled_falsy_values(value, monkeypatch):
+    from techtrend.enrich import _llm_disabled
+
+    monkeypatch.setenv("TECHTREND_DISABLE_LLM", value)
+    assert _llm_disabled() is False
+
+
+def test_llm_disabled_unset(monkeypatch):
+    from techtrend.enrich import _llm_disabled
+
+    monkeypatch.delenv("TECHTREND_DISABLE_LLM", raising=False)
+    assert _llm_disabled() is False
+
+
+def test_disable_llm_switch_falsy_still_runs_enrichment(db, monkeypatch):
+    from unittest.mock import Mock
+
+    import techtrend.enrich as enrich_mod
+
+    conn = db
+    monkeypatch.setenv("TECHTREND_DISABLE_LLM", "0")
+
+    run_enrichment_stub = Mock(return_value=0)
+    monkeypatch.setattr(enrich_mod, "run_enrichment", run_enrichment_stub)
+    monkeypatch.setattr(enrich_mod, "connect", lambda *a, **k: conn)
+    monkeypatch.setattr(enrich_mod, "init_db", lambda *a, **k: None)
+    monkeypatch.setattr(conn, "close", lambda: None)
+
+    exit_code = enrich_mod.main([])
+
+    assert exit_code == 0
+    run_enrichment_stub.assert_called_once()
