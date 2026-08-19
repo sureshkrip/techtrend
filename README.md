@@ -42,6 +42,11 @@ Other configuration:
   # enrichment_base_url = "https://api.moonshot.ai/v1"  # optional, this is the default
   ```
   and set **`OPENAI_API_KEY`** in `.env`.
+- **`TECHTREND_DISABLE_LLM`** — a runtime env switch (truthy values `1`/`true`/`yes`/`on`)
+  that skips the enrichment LLM/summary stage entirely: when set, no LLM calls are made
+  and neither `OPENAI_API_KEY` nor `ANTHROPIC_API_KEY` is required. The pipeline still
+  collects and scores, and the run is recorded with a `run_manifest` `disabled` status.
+  Toggleable in the Coolify deploy environment without editing config files.
 - **Data location** — storage is PostgreSQL (see Prerequisites), not a filesystem path. The HTTP cache and log file still default to the repo root; override with `TECHTREND_DATA_DIR=/path/to/data`. The database schema initializes itself on first run against the configured Postgres server — there is no separate migration step.
 
 ## Run
