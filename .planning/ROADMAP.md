@@ -109,7 +109,23 @@ Plans:
   2. The same release mentioned on both GitHub and a vendor changelog resolves to one entity, not two duplicate dashboard rows.
   3. Adding these three sources required only new collector modules plus a registry entry — no changes to the scorer, gate, enricher, or dashboard code.
 
-**Plans**: TBD
+**Plans**: 6 plans
+
+Plans:
+**Wave 1** (shared substrate — the D3-5 deviation surface, parallel)
+
+- [ ] 03-01-PLAN.md — Scorer + normalize momentum seam: parameterize compute_window_gain by per-source metric_name (D3-5 touch #1) + PRIMARY_METRIC/identity converters + multi-source ranking regression test
+- [ ] 03-02-PLAN.md — Shared collector substrate: curated config models + tracked.toml [hn]/[packages]/[[changelogs]] sections (D3-4) + unauthenticated public HTTP client & retry predicate (D3-5 touch #3)
+- [ ] 03-03-PLAN.md — Dashboard label generalization (D3-5 touch #2) + honest ROADMAP/REQUIREMENTS supersession notes for the SC2 dedup descope (D3-2) and SC3 revision (D3-5)
+
+**Wave 2** (collectors, parallel — each mirrors github.py, fixture-backed, no registry edit)
+
+- [ ] 03-04-PLAN.md — Hacker News collector (COLL-03): Algolia search, metrics={"points": N}
+- [ ] 03-05-PLAN.md — npm + PyPI package collectors (COLL-04): rolling last-week download total, metrics={"downloads": N}
+
+**Wave 3** (changelog + integration)
+
+- [ ] 03-06-PLAN.md — Vendor changelog collector (COLL-05) via feedparser, metrics={"releases": <in-window count>} (D3-3) + feedparser legitimacy checkpoint; registers all four new collectors and updates the registry-count test
 
 ### Phase 4: Autonomous Daily Scheduling
 
