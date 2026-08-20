@@ -29,6 +29,14 @@ A changelog "release" is an event, not a cumulative count. Count the **releases 
 ### D3-4. Source lists: curated in config/tracked.toml
 Which HN keywords, which npm/PyPI packages, and which changelog feed URLs are tracked is **hand-curated in `config/tracked.toml`** (new sections, mirroring the existing `[seed]`/`[discovery]` pattern), validated through `techtrend/config.py`. NOT auto-derived from tracked GitHub repos.
 
+### D3-5. SC3 revision — minimal, DOCUMENTED scorer + dashboard + client touches (added post-research 2026-08-19)
+Research (`03-RESEARCH.md`, commit `c8e7807`) proved the codebase is NOT as source-agnostic as documented. COLL success-criterion 3 ("adding a source requires NO change to scorer/gate/enricher/dashboard") is **infeasible as literally stated** and is hereby **revised** — recorded honestly (SQLite→Postgres precedent), not silently. The following minimal touches are LOCKED as in-scope, named deviations:
+- **Scorer (unavoidable):** `score.py::compute_window_gain` hardcodes `WHERE metric_name = 'stars'` (score.py:103). Parameterize the momentum metric name — resolved per source via a `PRIMARY_METRIC` lookup living in `normalize.py` (e.g. github→stars, hackernews→points, npm/pypi→downloads, changelog→releases). Without this, every non-GitHub entity scores `eligible=0` forever with no visible failure. Keep the change mechanical; do NOT touch the Wilson math or the gate/enricher.
+- **Dashboard (user chose "Generalize the labels"):** `queries.py` `SORT_KEYS`/`stars_total` and `table.html` hardcode `'stars'` / "Stars"/"Stars gained". Generalize to source-agnostic wording (e.g. "Momentum"/"Gained" or per-source metric) so multi-source rows read correctly. Small template + query touch, documented.
+- **HTTP client:** `http.py::build_client()` hard-requires `GITHUB_TOKEN`; the three new sources are unauthenticated public APIs. Add a separate/parameterized unauthenticated client — do NOT loosen the GitHub client's token requirement.
+
+Everything else in the ranking gate and enricher stays untouched. These three touches are the whole deviation surface — the planner must not expand it.
+
 ### Claude's Discretion (decide during research/planning)
 - **HN collector:** Algolia HN Search API (`https://hn.algolia.com/api/v1/search`), query by the AI/LLM keywords (reuse/extend `[discovery].keywords`). Primary momentum signal = story **points** (comments optional/secondary). No historical backfill exists → HN will be sparse for the first ~week exactly like GitHub's D-08a honesty; that is expected, not a bug.
 - **npm/PyPI collectors:** npm downloads via `https://api.npmjs.org/downloads/`, PyPI via the pypistats API. Metric = `{"downloads": N}`; momentum = downloads gained over the window.
