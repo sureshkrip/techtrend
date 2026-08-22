@@ -18,7 +18,7 @@ import math
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-from techtrend.pipeline.normalize import momentum_for_source
+from techtrend.pipeline.normalize import momentum_for_source, primary_metric_for_source
 
 logger = logging.getLogger(__name__)
 
@@ -83,11 +83,19 @@ def score_entity(stars_gained: int, stars_total: int, floor: int) -> tuple[bool,
     return True, wilson_lower_bound(successes, n)
 
 
-def compute_window_gain(conn, entity_id: int, window_days: int) -> WindowGain:
-    """Reads every `stars` snapshot row for `entity_id`, trims to the
+def compute_window_gain(
+    conn, entity_id: int, window_days: int, metric_name: str = "stars"
+) -> WindowGain:
+    """Reads every `metric_name` snapshot row for `entity_id`, trims to the
     trailing `window_days` relative to that entity's own most recent
     snapshot, and returns the gain across whatever range is actually
     available.
+
+    `metric_name` defaults to 'stars' so every pre-Phase-3 caller (this
+    module's own `rescore_all` fallback path and every existing test) keeps
+    working unchanged -- `rescore_all` resolves the real per-source metric
+    via `normalize.primary_metric_for_source` and passes it explicitly
+    (D3-5 touch #1).
 
     Anchoring the trailing window on the entity's own latest snapshot
     (rather than on wall-clock "now") is what keeps this function a pure
@@ -100,10 +108,10 @@ def compute_window_gain(conn, entity_id: int, window_days: int) -> WindowGain:
     rows = conn.execute(
         """
         SELECT collected_at, metric_value FROM snapshots
-        WHERE entity_id = %s AND metric_name = 'stars'
+        WHERE entity_id = %s AND metric_name = %s
         ORDER BY collected_at ASC
         """,
-        (entity_id,),
+        (entity_id, metric_name),
     ).fetchall()
 
     if not rows:
@@ -170,7 +178,8 @@ def rescore_all(conn, config, run_date) -> int:
 
     written = 0
     for entity in entities:
-        gain = compute_window_gain(conn, entity["id"], window_days)
+        metric_name = primary_metric_for_source(entity["source"])
+        gain = compute_window_gain(conn, entity["id"], window_days, metric_name=metric_name)
         momentum_gain, momentum_total = momentum_for_source(
             entity["source"], gain.stars_gained, gain.stars_total
         )
