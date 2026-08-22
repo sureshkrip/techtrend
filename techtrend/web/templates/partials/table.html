@@ -24,12 +24,12 @@
     <th class="col-gained">
         <a class="sort-link{{ ' sort-active' if sort == 'gained' else '' }}"
            hx-get="/?sort=gained&section={{ section or '' }}" hx-target="#table-body" hx-swap="innerHTML"
-           hx-push-url="true" hx-indicator="#table-body">Stars gained{% if sort == 'gained' %}<span class="sort-glyph"> ▼</span>{% endif %}</a>
+           hx-push-url="true" hx-indicator="#table-body">Gained{% if sort == 'gained' %}<span class="sort-glyph"> ▼</span>{% endif %}</a>
     </th>
     <th class="col-stars">
         <a class="sort-link{{ ' sort-active' if sort == 'stars' else '' }}"
            hx-get="/?sort=stars&section={{ section or '' }}" hx-target="#table-body" hx-swap="innerHTML"
-           hx-push-url="true" hx-indicator="#table-body">Stars{% if sort == 'stars' %}<span class="sort-glyph"> ▼</span>{% endif %}</a>
+           hx-push-url="true" hx-indicator="#table-body">Total{% if sort == 'stars' %}<span class="sort-glyph"> ▼</span>{% endif %}</a>
     </th>
     <th class="action-col"><span class="col-label">Links</span></th>
 </tr>

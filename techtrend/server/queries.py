@@ -64,6 +64,11 @@ _QUERY_RANKED_SQL = """
         enrichments.low_confidence,
         enrichments.status AS enrichment_status,
         (
+            -- Internal alias name is unchanged ('stars_total'), but it now
+            -- backs the dashboard's source-agnostic "Total" column (D3-5
+            -- touch #2) -- a non-GitHub entity has no 'stars' snapshot and
+            -- this subquery correctly returns NULL for it, which table.html
+            -- renders as an em-dash rather than a scorer/query error.
             SELECT snapshots.metric_value
             FROM snapshots
             WHERE snapshots.entity_id = entities.id
