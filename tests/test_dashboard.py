@@ -24,6 +24,7 @@ def _insert_entity(
     conn,
     native_id,
     *,
+    source="github",
     full_name=None,
     url=None,
     homepage=None,
@@ -38,11 +39,12 @@ def _insert_entity(
             source, source_native_id, full_name, url, homepage, docs_url,
             docs_url_kind, discovery_method, admitted_at, last_seen_at
         ) VALUES (
-            'github', %(native_id)s, %(full_name)s, %(url)s, %(homepage)s, %(docs_url)s,
+            %(source)s, %(native_id)s, %(full_name)s, %(url)s, %(homepage)s, %(docs_url)s,
             %(docs_url_kind)s, 'seed', '2026-07-01T00:00:00Z', '2026-07-19T00:00:00Z'
         )
         """,
         {
+            "source": source,
             "native_id": native_id,
             "full_name": full_name,
             "url": url,
@@ -52,8 +54,8 @@ def _insert_entity(
         },
     )
     return conn.execute(
-        "SELECT id FROM entities WHERE source = 'github' AND source_native_id = %s",
-        (native_id,),
+        "SELECT id FROM entities WHERE source = %s AND source_native_id = %s",
+        (source, native_id),
     ).fetchone()["id"]
 
 
@@ -260,6 +262,62 @@ def test_velocity_renders_four_decimals_while_sorting_on_unrounded_value(db, pg_
     assert response.status_code == 200
     assert response.text.count("0.5000") == 2
     assert response.text.index("owner/six-hi") < response.text.index("owner/six-lo")
+
+
+# --- 03-03/D3-5 touch #2: source-agnostic column labels + non-GitHub rows ---
+
+
+def test_column_headers_use_source_agnostic_labels_not_stars(db, pg_env):
+    """Header link text must read source-agnostically ("Gained"/"Total") --
+    the literal phrase "Stars gained" must not appear anywhere in the
+    rendered header row, since multi-source rows (HN points, npm/PyPI
+    downloads, changelog releases) have no "stars" (D3-5 touch #2)."""
+    conn = db
+    entity_id = _insert_entity(conn, "1", full_name="owner/label-check")
+    _insert_score(conn, entity_id, wilson_lower_bound=0.5)
+    conn.commit()
+
+    client = _client()
+    response = client.get("/")
+    text = response.text
+
+    assert response.status_code == 200
+    assert "Stars gained" not in text
+
+    gained_header = _sort_link_html(text, "gained")
+    total_header = _sort_link_html(text, "stars")
+    assert "Gained" in gained_header
+    assert "Total" in total_header
+    # The header cell text specifically must not carry the old "Stars"
+    # wording -- checked against the header link, not incidental prose
+    # elsewhere on the page.
+    assert "Stars" not in gained_header
+    assert "Stars" not in total_header
+
+
+def test_non_github_row_with_no_stars_snapshot_renders_em_dash_total(db, pg_env):
+    """A non-GitHub entity (e.g. source='changelog') legitimately has no
+    'stars' snapshot -- the total column must degrade to an em-dash rather
+    than raising or rendering a blank/None cell (RESEARCH Open Question 2:
+    the stars_total subquery degrades gracefully by design)."""
+    conn = db
+    changelog_entity = _insert_entity(
+        conn, "1", source="changelog", full_name="vendor/release-feed"
+    )
+    _insert_score(conn, changelog_entity, wilson_lower_bound=0.5, eligible=1)
+    conn.commit()
+
+    client = _client()
+    response = client.get("/")
+    text = response.text
+
+    assert response.status_code == 200
+    assert "vendor/release-feed" in text
+
+    row_start = text.index("vendor/release-feed")
+    row_end = text.index("</tr>", row_start)
+    row = text[row_start:row_end]
+    assert '<td class="col-stars">—</td>' in row
 
 
 # --- DASH-04/DASH-05: honest outbound links ---
