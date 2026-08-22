@@ -63,6 +63,33 @@ def _default_headers() -> dict[str, str]:
     }
 
 
+def build_public_client(
+    *,
+    transport: httpx.BaseTransport | None = None,
+    timeout: float = 30.0,
+) -> httpx.Client:
+    """Return an httpx.Client for unauthenticated public APIs (Algolia HN,
+    npm registry, pypistats, vendor RSS/Atom feeds) -- D3-5 touch #3.
+
+    No token lookup, no Authorization header, callable whether or not
+    GITHUB_TOKEN is set -- it never reads that env var. `_default_headers()`
+    and `build_client()`'s fail-loud token requirement are deliberately
+    untouched; this is a separate builder, not a parameterization of the
+    GitHub path, so the GitHub client's auth requirement stays exactly as-is.
+
+    No hishel caching seam here -- these public APIs are polled at most
+    once/day (matching the project's daily cadence), so a plain
+    `httpx.HTTPTransport()` (or the injected test transport) is sufficient.
+    `transport` lets tests inject an `httpx.MockTransport`, same seam as
+    `build_client()`.
+    """
+    return httpx.Client(
+        transport=transport or httpx.HTTPTransport(),
+        headers={"User-Agent": "techtrend/0.1 (contact: sureshkrip@gmail.com)"},
+        timeout=timeout,
+    )
+
+
 def build_client(
     *,
     transport: httpx.BaseTransport | None = None,
@@ -103,5 +130,24 @@ def is_retryable(exc: BaseException) -> bool:
         if resp.status_code >= 500:
             return True
         if resp.status_code == 403 and resp.headers.get("x-ratelimit-remaining") == "0":
+            return True
+    return False
+
+
+def is_retryable_public(exc: BaseException) -> bool:
+    """Retry predicate for the unauthenticated public APIs (Algolia HN, npm
+    registry, pypistats) -- D3-5 touch #3 / RESEARCH.md Pitfall 3.
+
+    Deliberately NOT a reuse of `is_retryable`, which keys on GitHub's
+    `x-ratelimit-remaining:0` 403 convention -- none of these public APIs
+    use that signal. Retries only 429 and 5xx (transient throttling/server
+    error); treats every other 4xx (403 permission-denied, 404 not-found,
+    etc.) as permanent so a bad request never loops in a retry storm.
+    """
+    if isinstance(exc, httpx.HTTPStatusError):
+        resp = exc.response
+        if resp.status_code >= 500:
+            return True
+        if resp.status_code == 429:
             return True
     return False
