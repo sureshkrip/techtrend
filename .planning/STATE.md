@@ -4,16 +4,16 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 3
 current_phase_name: Source Breadth — Discourse, Downloads & Changelogs
-status: planning
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-08-19T13:09:53.675Z"
-last_activity: 2026-08-19
-last_activity_desc: "Completed 04-01-PLAN.md: rescoped Phase 4 (SCHED-01/SCHED-02) from Windows Task Scheduler to the hosted Coolify Scheduled Task model; README deploy docs + verification done. Phase 4 executed ahead of Phase 3 at the owner's explicit request (04-CONTEXT.md); Phase 3 remains the next phase to plan."
+status: complete
+stopped_at: Completed Phase 3 (all 6 plans) — all 4 roadmap phases done
+last_updated: "2026-08-22T22:01:14.331Z"
+last_activity: 2026-08-22
+last_activity_desc: "Completed Phase 3 (Source Breadth): HN + npm/PyPI + changelog collectors, 5 registered, scorer source-parameterized, dashboard labels generalized. 200 tests pass; verified 6/6. All 4 roadmap phases complete."
 progress:
   total_phases: 4
-  completed_phases: 3
-  total_plans: 12
-  completed_plans: 12
+  completed_phases: 4
+  total_plans: 18
+  completed_plans: 18
 ---
 
 # Project State
@@ -27,10 +27,11 @@ See: .planning/PROJECT.md (updated 2026-08-14)
 
 ## Current Position
 
-Phase: 3 — Source Breadth — Discourse, Downloads & Changelogs
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-08-22 — Completed quick task 260822-mfu: env-var overrides for enrichment provider/base_url/model (Coolify-configurable, 6 tests)
+Phase: 3 — Source Breadth — Discourse, Downloads & Changelogs — COMPLETE (all 4 roadmap phases done)
+Current Plan: 06
+Total Plans in Phase: 6
+Status: Complete — all 6 plans executed; verified 6/6 (deploy-time UAT: live multi-day multi-source ranking deferred). Milestone v1.0 feature work done.
+Last activity: 2026-08-22 — Completed Phase 3 (Source Breadth): HN + npm/PyPI + changelog collectors registered (5 total), scorer source-parameterized, dashboard labels generalized; 200 tests pass.
 
 Progress: [██████████] 100%
 
@@ -70,6 +71,7 @@ Progress: [██████████] 100%
 | Phase 02 P04 | 8min | 2 tasks | 3 files |
 | Phase 02 P05 | 15min | 3 tasks | 6 files |
 | Phase 04 P01 | 5min | 3 tasks | 3 files |
+| Phase 03 P02 | 20min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -111,6 +113,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 02-05: Task 3 human-verify checkpoint structurally accepted per user instruction (135/135 automated + acceptance-criteria greps + static template review); live visual/anti-fabrication walkthrough deferred as UAT, mirroring Phase 1 precedent
 - [Phase ?]: [04-01]: Phase 4 rescoped in-place (ROADMAP + REQUIREMENTS) rather than superseded with a new requirement ID -- SCHED-01/SCHED-02 keep their IDs and Phase 4 mapping, with Windows-specific wording struck through and an explicit superseded note added
 - [Phase ?]: [04-01]: README's stale Kimi/Moonshot bullet (claimed enrichment defaults to Anthropic Haiku 4.5) corrected beyond the plan's literal Deploy-section scope -- it directly contradicted the actual config/tracked.toml default (GLM/openai) and the immediately-preceding corrected bullet (Rule 1 bug fix)
+- [Phase ?]: [Phase 3, 03-02]: build_public_client() is a wholly separate builder from build_client() (not a parameterization) -- GitHub token requirement and _default_headers() untouched; new sources get no hishel caching since they're polled at most once/day
+- [Phase ?]: [Phase 3, 03-02]: is_retryable_public() never treats 403 as transient even with GitHub's x-ratelimit-remaining:0 header present -- Algolia/npm/pypistats don't use that convention
 
 ### Pending Todos
 
@@ -148,9 +152,10 @@ Items acknowledged and carried forward from phase/milestone close:
 | UAT (browser) | DB-unreadable graceful-degradation copy — repeat vs renamed real DB (01-06 D10) | Deferred | 2026-08-13 |
 | UAT (token) | Live section browsing + anti-fabrication summary spot-check — needs ANTHROPIC_API_KEY + a fresh collect/score/enrich run against real data (02-05 Task 3) | ✓ Resolved (UAT pass 2026-08-14) | 2026-08-15 |
 | UAT (deploy) | Live Coolify Scheduled Task fire — create the cron task in the hosted Coolify dashboard and confirm an unattended `python -m techtrend.daily` run end-to-end (Phase 4 SC1, 04-VERIFICATION.md human_needed) | Deferred | 2026-08-19 |
+| UAT (deploy) | Live multi-day, multi-source ranking — confirm HN/npm/PyPI/changelog items appear ranked alongside GitHub on the deployed dashboard after several scheduled daily runs against the real Algolia/npm/pypistats/RSS APIs (Phase 3 SC1, 03-VERIFICATION.md human_needed) | Deferred | 2026-08-22 |
 
 ## Session Continuity
 
-Last session: 2026-08-19T13:09:10.720Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-08-22T22:01:14.315Z
+Stopped at: Completed 03-02-PLAN.md
 Resume file: None

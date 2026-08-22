@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation & First Signal — GitHub, Scored and Visible** - Schema, backfilled GitHub collector, confidence-bounded velocity scorer, and a minimal dashboard — real ranked data, visible, before any LLM spend (completed 2026-08-13)
 - [x] **Phase 2: Cost-Gated LLM Enrichment** - Gate + hard cap + LLM summarize/classify into the seven sections, cached by content hash, never losing ranked data on failure (completed 2026-08-14)
-- [ ] **Phase 3: Source Breadth — Discourse, Downloads & Changelogs** - Hacker News, npm/PyPI, and vendor changelogs added through the existing collector plugin interface
+- [x] **Phase 3: Source Breadth — Discourse, Downloads & Changelogs** - Hacker News, npm/PyPI, and vendor changelogs added through the existing collector plugin interface (completed 2026-08-22; SC2 dedup deferred per D3-2, SC3 revised per D3-5 — deploy-time UAT: live multi-day multi-source ranking deferred)
 - [x] **Phase 4: Autonomous Daily Scheduling** - Coolify Scheduled Task (cron) fires `python -m techtrend.daily` so the pipeline runs unattended every day on the hosted deployment (completed 2026-08-19; executed ahead of Phase 3 — deploy-time UAT: live cron fire deferred)
 
 ## Phase Details
@@ -114,18 +114,18 @@ Plans:
 Plans:
 **Wave 1** (shared substrate — the D3-5 deviation surface, parallel)
 
-- [ ] 03-01-PLAN.md — Scorer + normalize momentum seam: parameterize compute_window_gain by per-source metric_name (D3-5 touch #1) + PRIMARY_METRIC/identity converters + multi-source ranking regression test
-- [ ] 03-02-PLAN.md — Shared collector substrate: curated config models + tracked.toml [hn]/[packages]/[[changelogs]] sections (D3-4) + unauthenticated public HTTP client & retry predicate (D3-5 touch #3)
-- [ ] 03-03-PLAN.md — Dashboard label generalization (D3-5 touch #2) + honest ROADMAP/REQUIREMENTS supersession notes for the SC2 dedup descope (D3-2) and SC3 revision (D3-5)
+- [x] 03-01-PLAN.md — Scorer + normalize momentum seam: parameterize compute_window_gain by per-source metric_name (D3-5 touch #1) + PRIMARY_METRIC/identity converters + multi-source ranking regression test
+- [x] 03-02-PLAN.md — Shared collector substrate: curated config models + tracked.toml [hn]/[packages]/[[changelogs]] sections (D3-4) + unauthenticated public HTTP client & retry predicate (D3-5 touch #3)
+- [x] 03-03-PLAN.md — Dashboard label generalization (D3-5 touch #2) + honest ROADMAP/REQUIREMENTS supersession notes for the SC2 dedup descope (D3-2) and SC3 revision (D3-5)
 
 **Wave 2** (collectors, parallel — each mirrors github.py, fixture-backed, no registry edit)
 
-- [ ] 03-04-PLAN.md — Hacker News collector (COLL-03): Algolia search, metrics={"points": N}
-- [ ] 03-05-PLAN.md — npm + PyPI package collectors (COLL-04): rolling last-week download total, metrics={"downloads": N}
+- [x] 03-04-PLAN.md — Hacker News collector (COLL-03): Algolia search, metrics={"points": N}
+- [x] 03-05-PLAN.md — npm + PyPI package collectors (COLL-04): rolling last-week download total, metrics={"downloads": N}
 
 **Wave 3** (changelog + integration)
 
-- [ ] 03-06-PLAN.md — Vendor changelog collector (COLL-05) via feedparser, metrics={"releases": <in-window count>} (D3-3) + feedparser legitimacy checkpoint; registers all four new collectors and updates the registry-count test
+- [x] 03-06-PLAN.md — Vendor changelog collector (COLL-05) via feedparser, metrics={"releases": <in-window count>} (D3-3) + feedparser legitimacy checkpoint; registers all four new collectors and updates the registry-count test
 
 ### Phase 4: Autonomous Daily Scheduling
 
@@ -157,7 +157,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|-----------------|--------|-----------|
 | 1. Foundation & First Signal | 6/6 | Complete    | 2026-08-13 |
 | 2. Cost-Gated LLM Enrichment | 5/5 | Complete    | 2026-08-14 |
-| 3. Source Breadth | 0/TBD | Not started | - |
+| 3. Source Breadth | 6/6 | Complete    | 2026-08-22 |
 | 4. Autonomous Daily Scheduling | 1/1 | Complete    | 2026-08-19 |
 
 ## Backlog
