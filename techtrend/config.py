@@ -5,6 +5,7 @@ application code never re-declares one of these numbers as a literal
 (CONTEXT.md "Claude's Discretion": config, not code constant).
 """
 
+import os
 import tomllib
 from pathlib import Path
 
@@ -103,4 +104,20 @@ def load_config(path: Path | None = None) -> Config:
     resolved = path if path is not None else DEFAULT_CONFIG_PATH
     with open(resolved, "rb") as f:
         raw = tomllib.load(f)
+
+    # Env wins over tracked.toml for exactly these three enrichment fields --
+    # lets the deploy environment (Coolify) change model/provider/endpoint
+    # without a code change or a tracked.toml commit. A set, non-empty value
+    # overrides; unset or empty string falls back to the file value (then the
+    # Pydantic default). No other tunable and no secret is env-overridable here.
+    tunables = raw.setdefault("tunables", {})
+    env_overrides = {
+        "enrichment_provider": os.environ.get("TECHTREND_ENRICHMENT_PROVIDER"),
+        "enrichment_base_url": os.environ.get("TECHTREND_ENRICHMENT_BASE_URL"),
+        "enrichment_model": os.environ.get("TECHTREND_ENRICHMENT_MODEL"),
+    }
+    for key, value in env_overrides.items():
+        if value:
+            tunables[key] = value
+
     return Config.model_validate(raw)
