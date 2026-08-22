@@ -1,0 +1,43 @@
+{
+  "hits": [
+    {
+      "objectID": "42981234",
+      "title": "Aider: AI pair programming in your terminal",
+      "url": "https://github.com/Aider-AI/aider",
+      "author": "someuser",
+      "points": 187,
+      "num_comments": 64,
+      "created_at": "2026-08-15T14:22:00.000Z",
+      "created_at_i": 1755267720,
+      "story_id": null,
+      "story_text": null,
+      "_tags": ["story", "author_someuser", "story_42981234"]
+    },
+    {
+      "objectID": "42981567",
+      "title": "Show HN: I built a local-first LLM agent runner",
+      "url": null,
+      "author": "anotheruser",
+      "points": 96,
+      "num_comments": 41,
+      "created_at": "2026-08-16T09:05:00.000Z",
+      "created_at_i": 1755334300,
+      "story_id": null,
+      "story_text": "I've been working on a small agent runner that keeps everything on-device...",
+      "_tags": ["story", "author_anotheruser", "story_42981567", "show_hn"]
+    },
+    {
+      "objectID": "42982011",
+      "title": "Ask HN: What's your favorite AI coding assistant in 2026?",
+      "url": null,
+      "author": "thirduser",
+      "points": 58,
+      "num_comments": 112,
+      "created_at": "2026-08-17T18:40:00.000Z",
+      "created_at_i": 1755456000,
+      "story_id": null,
+      "story_text": "Curious what people are actually using day to day for AI-assisted coding.",
+      "_tags": ["story", "author_thirduser", "story_42982011", "ask_hn"]
+    }
+  ]
+}
