@@ -1,11 +1,12 @@
-"""Tests for techtrend.config.load_config()'s enrichment env-var overrides.
+"""Tests for techtrend.config.load_config()'s enrichment env-var overrides,
+and the curated D3-4 source-list config sections (hn/packages/changelogs).
 
 Network-free and DB-free: these tests only exercise config loading against
-the real, read-only config/tracked.toml. No fixture file is written or
-mutated.
+the real, read-only config/tracked.toml plus small in-tmp TOML fixtures.
+No production fixture file is written or mutated.
 """
 
-from techtrend.config import load_config
+from techtrend.config import Config, load_config
 
 ENV_VARS = (
     "TECHTREND_ENRICHMENT_PROVIDER",
@@ -66,4 +67,44 @@ def test_overrides_do_not_affect_other_tunables(monkeypatch):
     monkeypatch.setenv("TECHTREND_ENRICHMENT_BASE_URL", "https://example.test/v1")
     config = load_config()
     assert config.tunables.enrichment_cap == 15
+    assert config.tunables.window_days == 7
+
+
+# ---------------------------------------------------------------------------
+# D3-4 curated source-list config sections (hn/packages/changelogs)
+# ---------------------------------------------------------------------------
+
+
+def test_real_tracked_toml_exposes_hn_packages_changelogs():
+    config = load_config()
+    assert config.hn.keywords
+    assert config.hn.lookback_days == 7
+    assert config.packages.npm
+    assert config.packages.pypi
+    assert config.changelogs
+    for feed in config.changelogs:
+        assert feed.label
+        assert feed.url.startswith("https://")
+    # No known-404 vendor blog feed seeded (RESEARCH.md confirmed 404s).
+    assert not any(
+        "anthropic.com/rss" in feed.url or "ollama.com/blog/rss" in feed.url
+        for feed in config.changelogs
+    )
+
+
+def test_partial_toml_with_only_hn_section_still_validates(tmp_path):
+    partial = tmp_path / "partial.toml"
+    partial.write_text(
+        '[hn]\nkeywords = ["llm", "agentic"]\n',
+        encoding="utf-8",
+    )
+    config = load_config(partial)
+    assert isinstance(config, Config)
+    assert config.hn.keywords == ["llm", "agentic"]
+    assert config.hn.lookback_days == 7
+    # Every other section falls back to its empty/default value.
+    assert config.packages.npm == []
+    assert config.packages.pypi == []
+    assert config.changelogs == []
+    assert config.seed.repos == []
     assert config.tunables.window_days == 7
