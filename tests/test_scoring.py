@@ -19,7 +19,7 @@ import pytest
 from techtrend.config import Config, Tunables
 
 
-def _insert_entity(conn, native_id, full_name=None, dormant=False):
+def _insert_entity(conn, native_id, full_name=None, dormant=False, source="github"):
     full_name = full_name or f"owner/{native_id}"
     conn.execute(
         """
@@ -27,11 +27,12 @@ def _insert_entity(conn, native_id, full_name=None, dormant=False):
             source, source_native_id, full_name, url, discovery_method,
             admitted_at, last_seen_at, dormant_at
         ) VALUES (
-            'github', %(native_id)s, %(full_name)s, %(url)s, 'seed',
+            %(source)s, %(native_id)s, %(full_name)s, %(url)s, 'seed',
             '2026-07-01T00:00:00Z', '2026-07-19T00:00:00Z', %(dormant_at)s
         )
         """,
         {
+            "source": source,
             "native_id": native_id,
             "full_name": full_name,
             "url": f"https://github.com/{full_name}",
@@ -39,25 +40,37 @@ def _insert_entity(conn, native_id, full_name=None, dormant=False):
         },
     )
     return conn.execute(
-        "SELECT id FROM entities WHERE source_native_id = %s", (native_id,)
+        "SELECT id FROM entities WHERE source_native_id = %s AND source = %s",
+        (native_id, source),
     ).fetchone()["id"]
 
 
-def _insert_snapshot(conn, entity_id, collected_at, value, source_kind="observed"):
+def _insert_snapshot(
+    conn, entity_id, collected_at, value, source_kind="observed", metric_name="stars"
+):
     conn.execute(
         """
         INSERT INTO snapshots (entity_id, collected_at, metric_name, metric_value, source_kind)
-        VALUES (%s, %s, 'stars', %s, %s)
+        VALUES (%s, %s, %s, %s, %s)
         """,
-        (entity_id, collected_at, value, source_kind),
+        (entity_id, collected_at, metric_name, value, source_kind),
     )
 
 
-def _seed_series(conn, native_id, start_value, end_value, start_date, end_date):
+def _seed_series(
+    conn,
+    native_id,
+    start_value,
+    end_value,
+    start_date,
+    end_date,
+    source="github",
+    metric_name="stars",
+):
     """Two-point snapshot series: (start_date, start_value) -> (end_date, end_value)."""
-    entity_id = _insert_entity(conn, native_id)
-    _insert_snapshot(conn, entity_id, start_date.isoformat(), start_value)
-    _insert_snapshot(conn, entity_id, end_date.isoformat(), end_value)
+    entity_id = _insert_entity(conn, native_id, source=source)
+    _insert_snapshot(conn, entity_id, start_date.isoformat(), start_value, metric_name=metric_name)
+    _insert_snapshot(conn, entity_id, end_date.isoformat(), end_value, metric_name=metric_name)
     conn.commit()
     return entity_id
 
@@ -335,3 +348,66 @@ def test_wilson_bounds_match_research_worked_examples():
     assert wilson_lower_bound(8, 10) == pytest.approx(0.490, abs=1e-3)
     assert wilson_lower_bound(25, 75) == pytest.approx(0.237, abs=1e-3)
     assert wilson_lower_bound(300, 4300) == pytest.approx(0.0625, abs=1e-3)
+
+
+def test_multi_source_non_stars_entity_ranks_after_rescore(db):
+    """D3-5 touch #1 regression: a source='changelog' entity with a rising
+    two-point series under its OWN metric_name ('releases', per
+    normalize.PRIMARY_METRIC) must clear the floor and receive a non-zero
+    wilson_lower_bound after rescore_all -- exactly the case that silently
+    scored eligible=0 forever while compute_window_gain hardcoded
+    `metric_name = 'stars'` (RESEARCH Pitfall 2).
+    """
+    from techtrend.pipeline.score import rescore_all
+
+    changelog_id = _seed_series(
+        db,
+        "changelog-tool",
+        2,
+        30,
+        date(2026, 7, 13),
+        date(2026, 7, 19),
+        source="changelog",
+        metric_name="releases",
+    )
+
+    rescore_all(db, _config(), date(2026, 7, 19))
+
+    row = db.execute(
+        "SELECT eligible, wilson_lower_bound FROM scores WHERE entity_id = %s",
+        (changelog_id,),
+    ).fetchone()
+
+    assert row["eligible"] == 1
+    assert row["wilson_lower_bound"] > 0
+
+
+def test_multi_source_entity_with_metric_stored_under_stars_does_not_rank(db):
+    """Negative half of the regression above: the SAME magnitude series,
+    stored under 'stars' instead of the changelog entity's real metric
+    ('releases'), must NOT rank -- proving the fix depends on selecting the
+    per-source metric_name, not just on any snapshot rows existing for the
+    entity. This is the exact failure mode compute_window_gain's hardcoded
+    `metric_name = 'stars'` produced: the entity's real ('releases') rows
+    are silently invisible to the scorer.
+    """
+    from techtrend.pipeline.score import rescore_all
+
+    changelog_id = _seed_series(
+        db,
+        "changelog-tool-wrong-metric",
+        2,
+        30,
+        date(2026, 7, 13),
+        date(2026, 7, 19),
+        source="changelog",
+        metric_name="stars",
+    )
+
+    rescore_all(db, _config(), date(2026, 7, 19))
+
+    row = db.execute(
+        "SELECT eligible FROM scores WHERE entity_id = %s", (changelog_id,)
+    ).fetchone()
+
+    assert row["eligible"] == 0
