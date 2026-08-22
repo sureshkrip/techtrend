@@ -50,6 +50,86 @@ keywords = [
 force_include = []
 force_exclude = []
 
+[hn]
+# Hacker News discourse tracking via the Algolia Search API (COLL-03, D3-4).
+# Curated, not auto-derived -- extends [discovery].keywords with the same
+# AI-coding vocabulary, since HN search matches free text in story titles
+# rather than a GitHub name/description scan.
+keywords = [
+    "llm",
+    "large language model",
+    "agentic",
+    "ai agent",
+    "copilot",
+    "rag",
+    "retrieval augmented",
+    "mcp server",
+    "model context protocol",
+    "prompt engineering",
+    "ai coding",
+    "claude code",
+    "cursor",
+    "aider",
+]
+# 7-day trailing window for the Algolia search cutoff (D3-3 HN window),
+# matching [tunables].window_days.
+lookback_days = 7
+
+[packages]
+# npm/PyPI package download velocity tracking (COLL-04, D3-4). Curated,
+# not auto-derived from tracked GitHub repos.
+npm = [
+    "@anthropic-ai/claude-code",
+    "@anthropic-ai/sdk",
+    "@modelcontextprotocol/sdk",
+    "@langchain/langgraph",
+]
+pypi = [
+    "anthropic",
+    "langgraph",
+    "langchain",
+    "guardrails-ai",
+    "aider-chat",
+]
+
+# Vendor release-notes changelog tracking (COLL-05, D3-4). Each release
+# within the trailing window counts as one, fed through the existing
+# velocity model (D3-3). Feed URLs verified live 2026-08-19 (RESEARCH.md).
+# Anthropic and Ollama have NO official blog RSS feed (both confirmed 404 --
+# anthropic.com/rss.xml, ollama.com/blog/rss) -- their GitHub Releases Atom
+# feed is the reliable first-party substitute used here instead.
+[[changelogs]]
+label = "OpenAI News"
+url = "https://openai.com/news/rss.xml"
+
+[[changelogs]]
+label = "GitHub Changelog"
+url = "https://github.blog/changelog/feed/"
+
+[[changelogs]]
+label = "Hugging Face Blog"
+url = "https://huggingface.co/blog/feed.xml"
+
+[[changelogs]]
+label = "Aider"
+url = "https://github.com/Aider-AI/aider/releases.atom"
+
+[[changelogs]]
+label = "Ollama"
+url = "https://github.com/ollama/ollama/releases.atom"
+
+[[changelogs]]
+label = "Claude Code"
+url = "https://github.com/anthropics/claude-code/releases.atom"
+
+[[changelogs]]
+label = "LangGraph"
+url = "https://github.com/langchain-ai/langgraph/releases.atom"
+
+[[changelogs]]
+label = "llama.cpp"
+url = "https://github.com/ggml-org/llama.cpp/releases.atom"
+
 [tunables]
 # 7-day trailing window for velocity computation (D-09) — cancels weekday
 # seasonality without an explicit normalization step.

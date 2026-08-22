@@ -76,6 +76,32 @@ class Tunables(BaseModel):
     enrichment_base_url: str = "https://api.moonshot.ai/v1"
 
 
+class HackerNews(BaseModel):
+    # AI/LLM keyword set queried against the Algolia HN Search API (D3-4).
+    # Distinct from [discovery].keywords -- HN search terms are free text
+    # matched against story titles, not a GitHub name/description scan --
+    # but the same AI-coding vocabulary applies, so this list is seeded by
+    # extending [discovery].keywords rather than diverging from it.
+    keywords: list[str] = Field(default_factory=list)
+    # Trailing window (days) for the Algolia search cutoff (D3-3 HN window).
+    lookback_days: int = 7
+
+
+class Packages(BaseModel):
+    # Curated npm/PyPI package names tracked for download velocity (D3-4,
+    # COLL-04). Not auto-derived from tracked GitHub repos.
+    npm: list[str] = Field(default_factory=list)
+    pypi: list[str] = Field(default_factory=list)
+
+
+class ChangelogFeed(BaseModel):
+    # One curated RSS/Atom feed (D3-4, COLL-05). `label` becomes the
+    # entity's full_name (Claude's Discretion, CONTEXT.md) -- there is no
+    # per-entry vendor name to derive it from the feed itself.
+    label: str
+    url: str
+
+
 class SectionDef(BaseModel):
     # One of the seven fixed v1 taxonomy entries (ENR-04, D-15, A4). id is
     # the stable filing key stored in enrichments.section; label/description
@@ -91,6 +117,12 @@ class Config(BaseModel):
     discovery: Discovery = Field(default_factory=Discovery)
     overrides: Overrides = Field(default_factory=Overrides)
     tunables: Tunables = Field(default_factory=Tunables)
+    # Curated source lists for the three Phase 3 sources (D3-4). Each field
+    # carries a default so a partial config (e.g. only [hn] present) still
+    # validates -- matching the existing Tunables discipline.
+    hn: HackerNews = Field(default_factory=HackerNews)
+    packages: Packages = Field(default_factory=Packages)
+    changelogs: list[ChangelogFeed] = Field(default_factory=list)
     # Seven-section taxonomy (ENR-04, D-15, A4), declared order preserved --
     # the LLM section enum is built from this order, not re-sorted.
     sections: list[SectionDef] = Field(default_factory=list)
