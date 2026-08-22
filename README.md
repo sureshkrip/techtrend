@@ -42,6 +42,7 @@ Other configuration:
   enrichment_base_url = "https://api.moonshot.ai/v1"
   ```
   Anthropic Claude is also a documented alternative — set `enrichment_provider = "anthropic"` and `ANTHROPIC_API_KEY` in `.env` instead. In every case, only the key matching the active `enrichment_provider` is required, and neither is required if `TECHTREND_DISABLE_LLM` is set.
+- **Enrichment env overrides** — `TECHTREND_ENRICHMENT_PROVIDER`, `TECHTREND_ENRICHMENT_BASE_URL`, and `TECHTREND_ENRICHMENT_MODEL` are optional env vars that, when set to a non-empty value, each win over the corresponding `[tunables]` value in `config/tracked.toml`. This lets the enrichment model / provider / endpoint be changed from the deploy environment (Coolify) without a code change or a `tracked.toml` commit. Unset or empty falls back to the `config/tracked.toml` value.
 - **`TECHTREND_DISABLE_LLM`** — a runtime env switch (truthy values `1`/`true`/`yes`/`on`)
   that skips the enrichment LLM/summary stage entirely: when set, no LLM calls are made
   and neither `OPENAI_API_KEY` nor `ANTHROPIC_API_KEY` is required. The pipeline still
