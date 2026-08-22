@@ -1,0 +1,9 @@
+{
+  "data": {
+    "last_day": 120,
+    "last_week": 3400,
+    "last_month": 14000
+  },
+  "package": "some-pkg",
+  "type": "recent_downloads"
+}
