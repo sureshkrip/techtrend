@@ -299,11 +299,12 @@ def test_normalize_maps_metadata_fixture_onto_collected_item(github_fixture):
 # ---------------------------------------------------------------------------
 
 
-def test_collectors_registry_has_exactly_one_entry_satisfying_protocol():
-    assert len(COLLECTORS) == 1
+def test_collectors_registry_has_all_five_phase3_entries_satisfying_protocol():
+    assert len(COLLECTORS) == 5
     for collector in COLLECTORS:
         assert isinstance(collector, Collector)
         assert isinstance(collector.source_id, str)
         assert callable(collector.fetch)
         assert callable(collector.normalize)
-    assert COLLECTORS[0].source_id == "github"
+    source_ids = {collector.source_id for collector in COLLECTORS}
+    assert source_ids == {"github", "hn", "npm", "pypi", "changelog"}
