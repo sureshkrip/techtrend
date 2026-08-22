@@ -17,6 +17,8 @@
 
 ### Collection
 
+**Descope note (2026-08-22, D3-2):** Phase 3's own success criterion 2 (a release mentioned on both GitHub and a vendor changelog resolving to one entity) is descoped to v2 — see "Cross-source entity resolution" under v2 Requirements below and ROADMAP.md Phase 3 SC2 for the dated deferral note. This does not affect COLL-09 below, which covers within-source entity resolution (already satisfied in Phase 1) — cross-*source* identity resolution is the piece deferred.
+
 - [x] **COLL-01**: System collects repository star counts and release events from GitHub
 - [x] **COLL-02**: System backfills GitHub historical star data on first run, so velocity ranking works on day one without waiting for snapshots to accumulate
 - [ ] **COLL-03**: System collects stories and points from the Hacker News Algolia API
@@ -72,7 +74,7 @@
 - Reading queue — persistent flag-to-read backlog surviving runs
 - Muting and filtering rules
 - arXiv, Product Hunt, awesome-lists as sources
-- Cross-source entity resolution (recognizing a GitHub repo and its npm package as one tool)
+- Cross-source entity resolution (recognizing a GitHub repo and its npm package as one tool) — also covers the Phase 3 SC2 descope (a release on GitHub + a vendor changelog resolving to one entity), deferred 2026-08-22 per D3-2; see ROADMAP.md Phase 3 SC2 note
 - User-editable section taxonomy
 
 ---
