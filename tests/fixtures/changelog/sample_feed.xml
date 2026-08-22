@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Sample Vendor Changelog</title>
+  <link href="https://example.com/changelog"/>
+  <updated>2026-01-14T00:00:00Z</updated>
+  <id>https://example.com/changelog</id>
+  <entry>
+    <title>Release v1.4.0</title>
+    <link href="https://example.com/changelog/v1.4.0"/>
+    <id>https://example.com/changelog/v1.4.0</id>
+    <updated>2026-01-14T00:00:00Z</updated>
+  </entry>
+  <entry>
+    <title>Release v1.3.0</title>
+    <link href="https://example.com/changelog/v1.3.0"/>
+    <id>https://example.com/changelog/v1.3.0</id>
+    <updated>2026-01-10T00:00:00Z</updated>
+  </entry>
+  <entry>
+    <title>Release v1.2.0</title>
+    <link href="https://example.com/changelog/v1.2.0"/>
+    <id>https://example.com/changelog/v1.2.0</id>
+    <updated>2026-01-05T00:00:00Z</updated>
+  </entry>
+  <entry>
+    <title>Release v1.1.0</title>
+    <link href="https://example.com/changelog/v1.1.0"/>
+    <id>https://example.com/changelog/v1.1.0</id>
+    <updated>2025-12-01T00:00:00Z</updated>
+  </entry>
+</feed>
