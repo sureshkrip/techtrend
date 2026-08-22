@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-08-14)
 Phase: 3 — Source Breadth — Discourse, Downloads & Changelogs
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-08-19 — Completed 04-01-PLAN.md: rescoped Phase 4 (SCHED-01/SCHED-02) from Windows Task Scheduler to the hosted Coolify Scheduled Task model; README deploy docs + verification done. Phase 4 executed ahead of Phase 3 at the owner's explicit request (04-CONTEXT.md); Phase 3 remains the next phase to plan.
+Last activity: 2026-08-22 — Completed quick task 260822-mfu: env-var overrides for enrichment provider/base_url/model (Coolify-configurable, 6 tests)
 
 Progress: [██████████] 100%
 
@@ -132,6 +132,7 @@ None yet.
 | 260817-0qt | Migrate storage backend SQLite→PostgreSQL (psycopg3): DB layer, schema DDL, all SQL paramstyle across ingest/pipeline/server, no sqlite3 left, PGPASSWORD isolated to db/connection.py, ephemeral-PG pytest harness + 10 test files migrated. Full suite GREEN (142 passed) on local PostgreSQL 17; provider work (260817-09l) intact. | 2026-08-17 | 1a0a21e | Complete | [260817-0qt-migrate-storage-backend-from-sqlite-to-p](./quick/260817-0qt-migrate-storage-backend-from-sqlite-to-p/) |
 | 260817-jii | Switch enrichment LLM provider to GLM-4.7-Flash (Zhipu/Z.ai) via the existing OpenAI-compatible path (260817-09l): config-only edit to `config/tracked.toml` [tunables] (`enrichment_provider=openai`, `enrichment_base_url=https://api.z.ai/api/paas/v4/`, `enrichment_model=glm-4.7-flash`); Z.ai key in `.env` as `OPENAI_API_KEY` (gitignored). No .py changes; `load_config()` verified + `test_llm_openai.py` 5 passed. | 2026-08-17 | cc39a9f | Complete | [260817-jii-switch-llm-enrichment-provider-to-glm-4-](./quick/260817-jii-switch-llm-enrichment-provider-to-glm-4-/) |
 | 260818-sbl | Runtime env kill-switch `TECHTREND_DISABLE_LLM` (truthy `1/true/yes/on`): gate at top of `techtrend/enrich.py::main()` short-circuits before `run_enrichment`, records an honest `run_manifest` `enrich`/`disabled` row and returns 0 — no LLM client built, no OPENAI/ANTHROPIC key required; covers both `python -m techtrend.enrich` and `techtrend.daily`. +7 tests, README + .env.example documented. Full suite GREEN (154 passed). | 2026-08-18 | 24be631 | Complete | [260818-sbl-add-techtrend-disable-llm-env-switch-to-](./quick/260818-sbl-add-techtrend-disable-llm-env-switch-to-/) |
+| 260822-mfu | Env-var overrides for the three enrichment settings: `TECHTREND_ENRICHMENT_PROVIDER`/`_BASE_URL`/`_MODEL` applied in `config.py::load_config()` (set+non-empty wins over `config/tracked.toml`, else file/default) so the model can be changed from Coolify env without a code push. Scoped to those 3 fields only, no secrets. +6 tests (tests/test_config.py), README + .env.example documented. | 2026-08-22 | 7db78b2 | Complete | [260822-mfu-add-env-var-overrides-for-enrichment-pro](./quick/260822-mfu-add-env-var-overrides-for-enrichment-pro/) |
 
 ## Deferred Items
 
