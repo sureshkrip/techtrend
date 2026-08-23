@@ -146,6 +146,95 @@ def test_enrich_item_openai_returns_none_on_refusal():
     assert output is None
 
 
+def test_enrich_item_openai_sends_extra_body_and_max_tokens_when_disable_thinking_true():
+    """quick-260822-s9h: disable_thinking=True must send extra_body with GLM's
+    thinking-disabled shape, and the passed max_tokens must reach create()."""
+    from techtrend.pipeline.llm_openai import enrich_item_openai
+
+    data = {
+        "summary_line_1": "line one",
+        "summary_line_2": "line two",
+        "section": "agentic_coding_tools",
+        "confidence": "high",
+    }
+    fake_client = _FakeOpenAIClient(
+        _FakeChatCompletion(json.dumps(data), finish_reason="stop")
+    )
+
+    output = enrich_item_openai(
+        fake_client,
+        model="glm-4.7-flash",
+        sections=SECTIONS,
+        description="A short repo description.",
+        readme_intro="A short README intro paragraph.",
+        max_tokens=2048,
+        disable_thinking=True,
+    )
+
+    assert output is not None
+    recorded = fake_client.chat.completions.last_call_kwargs
+    assert recorded["max_tokens"] == 2048
+    assert recorded["extra_body"] == {"thinking": {"type": "disabled"}}
+
+
+def test_enrich_item_openai_omits_extra_body_when_disable_thinking_false():
+    """quick-260822-s9h: disable_thinking=False (default / Kimi and other
+    non-GLM providers) must send NO extra_body key at all."""
+    from techtrend.pipeline.llm_openai import enrich_item_openai
+
+    data = {
+        "summary_line_1": "line one",
+        "summary_line_2": "line two",
+        "section": "agentic_coding_tools",
+        "confidence": "high",
+    }
+    fake_client = _FakeOpenAIClient(
+        _FakeChatCompletion(json.dumps(data), finish_reason="stop")
+    )
+
+    output = enrich_item_openai(
+        fake_client,
+        model="kimi-k2.5",
+        sections=SECTIONS,
+        description="A short repo description.",
+        readme_intro="A short README intro paragraph.",
+        disable_thinking=False,
+    )
+
+    assert output is not None
+    recorded = fake_client.chat.completions.last_call_kwargs
+    assert "extra_body" not in recorded
+
+
+def test_enrich_item_openai_default_max_tokens_and_no_extra_body():
+    """quick-260822-s9h: default call (no new kwargs passed) uses
+    max_tokens=1024 and sends no extra_body -- existing contract unchanged."""
+    from techtrend.pipeline.llm_openai import enrich_item_openai
+
+    data = {
+        "summary_line_1": "line one",
+        "summary_line_2": "line two",
+        "section": "agentic_coding_tools",
+        "confidence": "high",
+    }
+    fake_client = _FakeOpenAIClient(
+        _FakeChatCompletion(json.dumps(data), finish_reason="stop")
+    )
+
+    output = enrich_item_openai(
+        fake_client,
+        model="kimi-k2.5",
+        sections=SECTIONS,
+        description="A short repo description.",
+        readme_intro="A short README intro paragraph.",
+    )
+
+    assert output is not None
+    recorded = fake_client.chat.completions.last_call_kwargs
+    assert recorded["max_tokens"] == 1024
+    assert "extra_body" not in recorded
+
+
 def test_enrich_item_openai_returns_none_on_invalid_section():
     """ENR-04/D-02: an out-of-enum section id fails Pydantic validation and
     must return None, not raise or silently coerce."""

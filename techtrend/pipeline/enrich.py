@@ -200,7 +200,12 @@ def run_enrichment(
 
             def llm_call_fn(**kwargs):
                 return enrich_item_openai(
-                    openai_client, model=enrichment_model, sections=section_dicts, **kwargs
+                    openai_client,
+                    model=enrichment_model,
+                    sections=section_dicts,
+                    max_tokens=tunables.enrichment_max_tokens,
+                    disable_thinking=tunables.enrichment_disable_thinking,
+                    **kwargs,
                 )
         else:
             llm_client = build_llm_client()

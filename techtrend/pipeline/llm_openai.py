@@ -83,10 +83,19 @@ def enrich_item_openai(
     sections: list[dict],
     description: str,
     readme_intro: str,
+    max_tokens: int = 1024,
+    disable_thinking: bool = False,
 ) -> EnrichmentResult | None:
     """One structured chat-completions call: summarize+classify a single
     item using ONLY `description`/`readme_intro`, mirroring
     `llm.py::enrich_item`'s contract exactly.
+
+    `max_tokens` and `disable_thinking` are config-driven (quick-260822-s9h)
+    -- GLM-4.7-Flash is a reasoning model that can spend its whole token
+    budget "thinking" and emit empty content under a low cap. When
+    `disable_thinking` is True, `extra_body={"thinking": {"type": "disabled"}}`
+    is sent; otherwise no extra_body is added, leaving non-GLM OpenAI-compatible
+    providers (e.g. Kimi) unaffected.
 
     Returns `None` on missing/empty content, a refusal (e.g.
     `finish_reason == "content_filter"`), a JSON parse failure, or a
@@ -98,11 +107,11 @@ def enrich_item_openai(
     section_defs = "\n".join(f"- {s['id']}: {s['description']}" for s in sections)
     valid_sections = ", ".join(section_ids)
 
-    response = client.chat.completions.create(
-        model=model,
-        max_tokens=512,
-        response_format={"type": "json_object"},
-        messages=[
+    create_kwargs = {
+        "model": model,
+        "max_tokens": max_tokens,
+        "response_format": {"type": "json_object"},
+        "messages": [
             {
                 "role": "system",
                 "content": (
@@ -131,7 +140,11 @@ def enrich_item_openai(
                 ),
             },
         ],
-    )
+    }
+    if disable_thinking:
+        create_kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
+
+    response = client.chat.completions.create(**create_kwargs)
 
     choice = response.choices[0]
     if choice.finish_reason == "content_filter":
