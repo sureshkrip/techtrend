@@ -74,6 +74,19 @@ class Tunables(BaseModel):
     # OpenAI-compatible base URL used only when enrichment_provider is
     # "openai" (default: Moonshot AI's Kimi endpoint).
     enrichment_base_url: str = "https://api.moonshot.ai/v1"
+    # Max output tokens for the openai-provider summarize+classify call
+    # (quick-260822-s9h). gt=0: mirrors enrichment_cap's guard -- a
+    # non-positive cap defeats the safety net this exists for. Reasoning
+    # models (e.g. GLM-4.7-Flash) can spend their whole token budget
+    # "thinking" and emit empty content under too low a cap; this raises
+    # the ceiling as a safety net alongside enrichment_disable_thinking.
+    enrichment_max_tokens: int = Field(default=1024, gt=0)
+    # When True, sends extra_body={"thinking": {"type": "disabled"}} on the
+    # openai-provider call (quick-260822-s9h). GLM-4.7-Flash is a reasoning
+    # model that emits empty content under a low token cap unless thinking
+    # is disabled; disabling it is also ~10x cheaper, serving the bounded
+    # LLM-spend constraint. Ignored by the anthropic path entirely.
+    enrichment_disable_thinking: bool = False
 
 
 class HackerNews(BaseModel):
@@ -147,6 +160,8 @@ def load_config(path: Path | None = None) -> Config:
         "enrichment_provider": os.environ.get("TECHTREND_ENRICHMENT_PROVIDER"),
         "enrichment_base_url": os.environ.get("TECHTREND_ENRICHMENT_BASE_URL"),
         "enrichment_model": os.environ.get("TECHTREND_ENRICHMENT_MODEL"),
+        "enrichment_max_tokens": os.environ.get("TECHTREND_ENRICHMENT_MAX_TOKENS"),
+        "enrichment_disable_thinking": os.environ.get("TECHTREND_ENRICHMENT_DISABLE_THINKING"),
     }
     for key, value in env_overrides.items():
         if value:
