@@ -4,11 +4,12 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 3
 current_phase_name: Source Breadth — Discourse, Downloads & Changelogs
+current_plan: 06
 status: complete
 stopped_at: Completed Phase 3 (all 6 plans) — all 4 roadmap phases done
-last_updated: "2026-08-22T22:01:14.331Z"
+last_updated: "2026-08-23T00:31:44.162Z"
 last_activity: 2026-08-22
-last_activity_desc: "Completed Phase 3 (Source Breadth): HN + npm/PyPI + changelog collectors, 5 registered, scorer source-parameterized, dashboard labels generalized. 200 tests pass; verified 6/6. All 4 roadmap phases complete."
+last_activity_desc: "Quick task 260822-s9h: fixed GLM-4.7-Flash empty-content enrichment failures with config-driven enrichment_max_tokens/enrichment_disable_thinking; 36 tests pass."
 progress:
   total_phases: 4
   completed_phases: 4
@@ -137,6 +138,7 @@ None yet.
 | 260817-jii | Switch enrichment LLM provider to GLM-4.7-Flash (Zhipu/Z.ai) via the existing OpenAI-compatible path (260817-09l): config-only edit to `config/tracked.toml` [tunables] (`enrichment_provider=openai`, `enrichment_base_url=https://api.z.ai/api/paas/v4/`, `enrichment_model=glm-4.7-flash`); Z.ai key in `.env` as `OPENAI_API_KEY` (gitignored). No .py changes; `load_config()` verified + `test_llm_openai.py` 5 passed. | 2026-08-17 | cc39a9f | Complete | [260817-jii-switch-llm-enrichment-provider-to-glm-4-](./quick/260817-jii-switch-llm-enrichment-provider-to-glm-4-/) |
 | 260818-sbl | Runtime env kill-switch `TECHTREND_DISABLE_LLM` (truthy `1/true/yes/on`): gate at top of `techtrend/enrich.py::main()` short-circuits before `run_enrichment`, records an honest `run_manifest` `enrich`/`disabled` row and returns 0 — no LLM client built, no OPENAI/ANTHROPIC key required; covers both `python -m techtrend.enrich` and `techtrend.daily`. +7 tests, README + .env.example documented. Full suite GREEN (154 passed). | 2026-08-18 | 24be631 | Complete | [260818-sbl-add-techtrend-disable-llm-env-switch-to-](./quick/260818-sbl-add-techtrend-disable-llm-env-switch-to-/) |
 | 260822-mfu | Env-var overrides for the three enrichment settings: `TECHTREND_ENRICHMENT_PROVIDER`/`_BASE_URL`/`_MODEL` applied in `config.py::load_config()` (set+non-empty wins over `config/tracked.toml`, else file/default) so the model can be changed from Coolify env without a code push. Scoped to those 3 fields only, no secrets. +6 tests (tests/test_config.py), README + .env.example documented. | 2026-08-22 | 7db78b2 | Complete | [260822-mfu-add-env-var-overrides-for-enrichment-pro](./quick/260822-mfu-add-env-var-overrides-for-enrichment-pro/) |
+| 260822-s9h | Fix GLM-4.7-Flash empty-content enrichment failures: config-driven `enrichment_max_tokens` (default 1024, replacing hardcoded 512) and `enrichment_disable_thinking` (default true in tracked.toml) Tunables + env overrides; `enrich_item_openai` sends `extra_body={"thinking":{"type":"disabled"}}` only when the flag is true, leaving Kimi/anthropic paths untouched. +9 tests (test_config.py, test_llm_openai.py); full gate (test_llm_openai/test_config/test_enrich) 36 passed. | 2026-08-22 | 4c843b2 | Complete | [260822-s9h-fix-glm-enrichment-empty-content-failure](./quick/260822-s9h-fix-glm-enrichment-empty-content-failure/) |
 
 ## Deferred Items
 
@@ -156,6 +158,6 @@ Items acknowledged and carried forward from phase/milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-22T22:01:14.315Z
-Stopped at: Completed 03-02-PLAN.md
+Last session: 2026-08-23T00:31:44.162Z
+Stopped at: Completed quick task 260822-s9h (fix GLM enrichment empty-content failure)
 Resume file: None
