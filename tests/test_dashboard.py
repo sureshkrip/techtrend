@@ -368,6 +368,94 @@ def test_row_links_source_before_docs_with_honest_label(db, pg_env):
     assert ">Docs<" not in undocumented_row
 
 
+# --- Quick 260825-twr: source-aware outbound link labels + Item header ---
+
+
+def test_hn_row_shows_view_on_hn_and_no_github_or_repo_docs_link(db, pg_env):
+    """A Hacker News row must show a source-honest primary label ('View on
+    HN') and must never render the GitHub-specific second link ('Repo'/
+    'Docs') -- that link is repo-specific and would otherwise fall back to
+    a bogus repo/docs URL for a non-GitHub item."""
+    conn = db
+    hn_entity = _insert_entity(
+        conn,
+        "1",
+        source="hn",
+        full_name="story/show-hn",
+        url="https://news.ycombinator.com/item?id=1",
+    )
+    _insert_score(conn, hn_entity, wilson_lower_bound=0.5, eligible=1)
+    conn.commit()
+
+    client = _client()
+    response = client.get("/")
+    text = response.text
+
+    assert response.status_code == 200
+    assert "story/show-hn" in text
+
+    row_start = text.index("story/show-hn")
+    row_end = text.index("</tr>", row_start)
+    row = text[row_start:row_end]
+
+    assert "View on HN" in row
+    assert "View on GitHub" not in row
+    assert ">Repo<" not in row
+    assert ">Docs<" not in row
+
+
+def test_name_column_header_reads_item_not_repo(db, pg_env):
+    conn = db
+    entity_id = _insert_entity(conn, "1", full_name="owner/header-check")
+    _insert_score(conn, entity_id, wilson_lower_bound=0.5)
+    conn.commit()
+
+    client = _client()
+    response = client.get("/")
+
+    assert response.status_code == 200
+    name_header = _sort_link_html(response.text, "name")
+    assert "Item" in name_header
+    assert "Repo" not in name_header
+
+
+def test_non_github_sources_show_source_appropriate_primary_label(db, pg_env):
+    """npm/PyPI/changelog rows each show their own honest primary link
+    label and never the GitHub-specific second link."""
+    conn = db
+    cases = [
+        ("2", "npm", "pkg/npm-item", "https://www.npmjs.com/package/npm-item", "View on npm"),
+        ("3", "pypi", "pkg/pypi-item", "https://pypi.org/project/pypi-item/", "View on PyPI"),
+        (
+            "4",
+            "changelog",
+            "vendor/changelog-item",
+            "https://vendor.example.com/changelog",
+            "View changelog",
+        ),
+    ]
+    for native_id, source, full_name, url, _label in cases:
+        entity_id = _insert_entity(
+            conn, native_id, source=source, full_name=full_name, url=url
+        )
+        _insert_score(conn, entity_id, wilson_lower_bound=0.5, eligible=1)
+    conn.commit()
+
+    client = _client()
+    response = client.get("/")
+    text = response.text
+
+    assert response.status_code == 200
+    for _native_id, _source, full_name, _url, label in cases:
+        row_start = text.index(full_name)
+        row_end = text.index("</tr>", row_start)
+        row = text[row_start:row_end]
+        assert label in row
+        assert "View on GitHub" not in row
+        assert ">Repo<" not in row
+        assert ">Docs<" not in row
+
+
 # --- DASH-01/D-08a: partial-history footer note, singular/plural ---
 
 
