@@ -52,6 +52,9 @@ _QUERY_RANKED_SQL = """
         entities.id AS entity_id,
         entities.full_name,
         entities.url,
+        -- Source id (github/hn/npm/pypi/changelog) so table.html can branch
+        -- its outbound-link label per source (DASH-04/DASH-05, D3-5 touch #3).
+        entities.source,
         entities.homepage,
         entities.docs_url,
         entities.docs_url_kind,

@@ -13,7 +13,7 @@
     <th class="col-name">
         <a class="sort-link{{ ' sort-active' if sort == 'name' else '' }}"
            hx-get="/?sort=name&section={{ section or '' }}" hx-target="#table-body" hx-swap="innerHTML"
-           hx-push-url="true" hx-indicator="#table-body">Repo{% if sort == 'name' %}<span class="sort-glyph"> ▲</span>{% endif %}</a>
+           hx-push-url="true" hx-indicator="#table-body">Item{% if sort == 'name' %}<span class="sort-glyph"> ▲</span>{% endif %}</a>
     </th>
     <th class="col-summary"><span class="col-label">Summary</span></th>
     <th class="col-velocity">
@@ -57,8 +57,20 @@
         <td class="col-gained">{{ row['stars_gained'] }}</td>
         <td class="col-stars">{{ row['stars_total'] if row['stars_total'] is not none else '—' }}</td>
         <td class="action-col">
+            {% if row['source'] == 'hn' %}
+            <a href="{{ row['url'] }}">View on HN</a>
+            {% elif row['source'] == 'npm' %}
+            <a href="{{ row['url'] }}">View on npm</a>
+            {% elif row['source'] == 'pypi' %}
+            <a href="{{ row['url'] }}">View on PyPI</a>
+            {% elif row['source'] == 'changelog' %}
+            <a href="{{ row['url'] }}">View changelog</a>
+            {% else %}
             <a href="{{ row['url'] }}">View on GitHub</a>
+            {% endif %}
+            {% if row['source'] == 'github' %}
             <a href="{{ row['docs_url'] if row['docs_url'] else row['url'] }}">{{ 'Docs' if row['docs_url_kind'] in ('homepage', 'readme') else 'Repo' }}</a>
+            {% endif %}
         </td>
     </tr>
     {% endfor %}
