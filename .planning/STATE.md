@@ -8,8 +8,8 @@ current_plan: 06
 status: complete
 stopped_at: Completed Phase 3 (all 6 plans) — all 4 roadmap phases done
 last_updated: "2026-08-23T00:31:44.162Z"
-last_activity: 2026-08-22
-last_activity_desc: "Quick task 260822-s9h: fixed GLM-4.7-Flash empty-content enrichment failures with config-driven enrichment_max_tokens/enrichment_disable_thinking; 36 tests pass."
+last_activity: 2026-08-25
+last_activity_desc: "Quick task 260825-twr: made the dashboard table source-aware (per-source outbound-link labels, GitHub-only second link, 'Item' header) so HN/npm/PyPI/changelog items are no longer mislabeled as GitHub repos; 210 tests pass."
 progress:
   total_phases: 4
   completed_phases: 4
@@ -139,6 +139,7 @@ None yet.
 | 260818-sbl | Runtime env kill-switch `TECHTREND_DISABLE_LLM` (truthy `1/true/yes/on`): gate at top of `techtrend/enrich.py::main()` short-circuits before `run_enrichment`, records an honest `run_manifest` `enrich`/`disabled` row and returns 0 — no LLM client built, no OPENAI/ANTHROPIC key required; covers both `python -m techtrend.enrich` and `techtrend.daily`. +7 tests, README + .env.example documented. Full suite GREEN (154 passed). | 2026-08-18 | 24be631 | Complete | [260818-sbl-add-techtrend-disable-llm-env-switch-to-](./quick/260818-sbl-add-techtrend-disable-llm-env-switch-to-/) |
 | 260822-mfu | Env-var overrides for the three enrichment settings: `TECHTREND_ENRICHMENT_PROVIDER`/`_BASE_URL`/`_MODEL` applied in `config.py::load_config()` (set+non-empty wins over `config/tracked.toml`, else file/default) so the model can be changed from Coolify env without a code push. Scoped to those 3 fields only, no secrets. +6 tests (tests/test_config.py), README + .env.example documented. | 2026-08-22 | 7db78b2 | Complete | [260822-mfu-add-env-var-overrides-for-enrichment-pro](./quick/260822-mfu-add-env-var-overrides-for-enrichment-pro/) |
 | 260822-s9h | Fix GLM-4.7-Flash empty-content enrichment failures: config-driven `enrichment_max_tokens` (default 1024, replacing hardcoded 512) and `enrichment_disable_thinking` (default true in tracked.toml) Tunables + env overrides; `enrich_item_openai` sends `extra_body={"thinking":{"type":"disabled"}}` only when the flag is true, leaving Kimi/anthropic paths untouched. +9 tests (test_config.py, test_llm_openai.py); full gate (test_llm_openai/test_config/test_enrich) 36 passed. | 2026-08-22 | 4c843b2 | Complete | [260822-s9h-fix-glm-enrichment-empty-content-failure](./quick/260822-s9h-fix-glm-enrichment-empty-content-failure/) |
+| 260825-twr | Fix dashboard mislabeling non-GitHub items as GitHub repos: added `entities.source` to `_QUERY_RANKED_SQL`; `table.html` branches the outbound-link label per source (hn→"View on HN", npm→"View on npm", pypi→"View on PyPI", changelog→"View changelog", github/default→"View on GitHub"), gates the second Repo/Docs link behind `source == 'github'`, and renames the name-column header "Repo"→"Item". Presentation-layer only. +3 tests (test_dashboard.py); full suite 210 passed. Real-HN render verified via synthetic rows on the ephemeral PG cluster (local dev DB is github-only); live Coolify verification deferred. | 2026-08-25 | a68c971 | Complete | [260825-twr-fix-dashboard-mislabeling-non-github-ite](./quick/260825-twr-fix-dashboard-mislabeling-non-github-ite/) |
 
 ## Deferred Items
 
@@ -158,6 +159,6 @@ Items acknowledged and carried forward from phase/milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-23T00:31:44.162Z
-Stopped at: Completed quick task 260822-s9h (fix GLM enrichment empty-content failure)
+Last session: 2026-08-25
+Stopped at: Completed quick task 260825-twr (source-aware dashboard link labels)
 Resume file: None
