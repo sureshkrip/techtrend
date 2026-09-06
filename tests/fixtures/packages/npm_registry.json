@@ -1,0 +1,5 @@
+{
+  "name": "some-pkg",
+  "description": "A minimal example npm package for grounding tests.",
+  "readme": "# some-pkg\n\nA minimal example npm package used to ground enrichment summaries in tests.\n\n## Installation\n\n```\nnpm install some-pkg\n```\n"
+}

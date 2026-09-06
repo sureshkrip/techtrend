@@ -1,0 +1,7 @@
+{
+  "info": {
+    "name": "some-pkg",
+    "summary": "A minimal example PyPI package for grounding tests.",
+    "description": "# some-pkg\n\nA minimal example PyPI package used to ground enrichment summaries in tests.\n\n## Installation\n\n```\npip install some-pkg\n```\n"
+  }
+}
