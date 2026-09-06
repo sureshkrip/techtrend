@@ -721,6 +721,192 @@ def test_section_filter(db, pg_env):
     assert "owner/unenriched-repo" not in filtered_response.text
 
 
+# --- Quick 260906-nqc: top source-tab filter (All/GitHub/HN/Packages/Changelog) ---
+
+
+def test_default_all_view_shows_rows_from_every_source(db, pg_env):
+    """No `source` param (default/All) must show the unchanged unfiltered
+    list -- rows from every source appear, establishing the baseline that
+    the rest of this suite's single-source assertions are relative to."""
+    conn = db
+    github_entity = _insert_entity(conn, "1", source="github", full_name="owner/gh-item")
+    hn_entity = _insert_entity(
+        conn, "2", source="hn", full_name="story/hn-item", url="https://news.ycombinator.com/item?id=2"
+    )
+    npm_entity = _insert_entity(
+        conn, "3", source="npm", full_name="pkg/npm-item", url="https://www.npmjs.com/package/npm-item"
+    )
+    pypi_entity = _insert_entity(
+        conn, "4", source="pypi", full_name="pkg/pypi-item", url="https://pypi.org/project/pypi-item/"
+    )
+    changelog_entity = _insert_entity(
+        conn,
+        "5",
+        source="changelog",
+        full_name="vendor/changelog-item",
+        url="https://vendor.example.com/changelog",
+    )
+    for entity_id in (github_entity, hn_entity, npm_entity, pypi_entity, changelog_entity):
+        _insert_score(conn, entity_id, wilson_lower_bound=0.5, eligible=1)
+    conn.commit()
+
+    client = _client()
+    response = client.get("/")
+    text = response.text
+
+    assert response.status_code == 200
+    assert "owner/gh-item" in text
+    assert "story/hn-item" in text
+    assert "pkg/npm-item" in text
+    assert "pkg/pypi-item" in text
+    assert "vendor/changelog-item" in text
+
+
+def test_single_source_tabs_narrow_to_that_source_only(db, pg_env):
+    """?source=github / ?source=hn / ?source=changelog each show only their
+    own source's rows, excluding every other source's rows."""
+    conn = db
+    github_entity = _insert_entity(conn, "1", source="github", full_name="owner/gh-item")
+    hn_entity = _insert_entity(
+        conn, "2", source="hn", full_name="story/hn-item", url="https://news.ycombinator.com/item?id=2"
+    )
+    changelog_entity = _insert_entity(
+        conn,
+        "3",
+        source="changelog",
+        full_name="vendor/changelog-item",
+        url="https://vendor.example.com/changelog",
+    )
+    for entity_id in (github_entity, hn_entity, changelog_entity):
+        _insert_score(conn, entity_id, wilson_lower_bound=0.5, eligible=1)
+    conn.commit()
+
+    client = _client()
+
+    github_response = client.get("/?source=github")
+    assert github_response.status_code == 200
+    assert "owner/gh-item" in github_response.text
+    assert "story/hn-item" not in github_response.text
+    assert "vendor/changelog-item" not in github_response.text
+
+    hn_response = client.get("/?source=hn")
+    assert hn_response.status_code == 200
+    assert "story/hn-item" in hn_response.text
+    assert "owner/gh-item" not in hn_response.text
+    assert "vendor/changelog-item" not in hn_response.text
+
+    changelog_response = client.get("/?source=changelog")
+    assert changelog_response.status_code == 200
+    assert "vendor/changelog-item" in changelog_response.text
+    assert "owner/gh-item" not in changelog_response.text
+    assert "story/hn-item" not in changelog_response.text
+
+
+def test_packages_tab_combines_npm_and_pypi_and_excludes_others(db, pg_env):
+    """?source=packages shows BOTH the npm and the pypi row, and excludes
+    github/hn/changelog rows -- proves the combined group maps to
+    source IN (npm, pypi)."""
+    conn = db
+    github_entity = _insert_entity(conn, "1", source="github", full_name="owner/gh-item")
+    npm_entity = _insert_entity(
+        conn, "2", source="npm", full_name="pkg/npm-item", url="https://www.npmjs.com/package/npm-item"
+    )
+    pypi_entity = _insert_entity(
+        conn, "3", source="pypi", full_name="pkg/pypi-item", url="https://pypi.org/project/pypi-item/"
+    )
+    hn_entity = _insert_entity(
+        conn, "4", source="hn", full_name="story/hn-item", url="https://news.ycombinator.com/item?id=4"
+    )
+    for entity_id in (github_entity, npm_entity, pypi_entity, hn_entity):
+        _insert_score(conn, entity_id, wilson_lower_bound=0.5, eligible=1)
+    conn.commit()
+
+    client = _client()
+    response = client.get("/?source=packages")
+    text = response.text
+
+    assert response.status_code == 200
+    assert "pkg/npm-item" in text
+    assert "pkg/pypi-item" in text
+    assert "owner/gh-item" not in text
+    assert "story/hn-item" not in text
+
+
+def test_source_and_section_filters_compose_with_and(db, pg_env):
+    """A github entity and an hn entity share the same enrichment section;
+    ?source=github&section=<that section> shows only the github row (both
+    filters apply), while ?section=<that section> alone (no source) shows
+    both."""
+    conn = db
+    github_entity = _insert_entity(conn, "1", source="github", full_name="owner/gh-filed")
+    hn_entity = _insert_entity(
+        conn, "2", source="hn", full_name="story/hn-filed", url="https://news.ycombinator.com/item?id=2"
+    )
+    _insert_score(conn, github_entity, wilson_lower_bound=0.9, eligible=1)
+    _insert_score(conn, hn_entity, wilson_lower_bound=0.5, eligible=1)
+    _insert_enrichment(conn, github_entity, section="agentic_coding_tools")
+    _insert_enrichment(conn, hn_entity, content_hash="beadfeed", section="agentic_coding_tools")
+    conn.commit()
+
+    client = _client()
+
+    section_only_response = client.get("/?section=agentic_coding_tools")
+    assert section_only_response.status_code == 200
+    assert "owner/gh-filed" in section_only_response.text
+    assert "story/hn-filed" in section_only_response.text
+
+    composed_response = client.get("/?source=github&section=agentic_coding_tools")
+    assert composed_response.status_code == 200
+    assert "owner/gh-filed" in composed_response.text
+    assert "story/hn-filed" not in composed_response.text
+
+
+def test_unknown_source_falls_back_to_all(db, pg_env):
+    """?source=nonsense returns 200 and shows the same rows as / (no
+    predicate) -- mirrors the existing unrecognized-sort fallback test."""
+    conn = db
+    entity_id = _insert_entity(conn, "1", full_name="owner/fallback-check")
+    _insert_score(conn, entity_id, wilson_lower_bound=0.5, eligible=1)
+    conn.commit()
+
+    client = _client()
+
+    default_response = client.get("/")
+    fallback_response = client.get("/?source=nonsense")
+
+    assert default_response.status_code == 200
+    assert fallback_response.status_code == 200
+    assert "owner/fallback-check" in default_response.text
+    assert "owner/fallback-check" in fallback_response.text
+
+
+def test_active_source_round_trips_on_sort_headers_and_section_links(db, pg_env):
+    """The active source is preserved on every other control -- sort-header
+    links and sidebar section links must all carry source=hn when
+    ?source=hn is the active filter (Pitfall #5)."""
+    conn = db
+    hn_entity = _insert_entity(
+        conn, "1", source="hn", full_name="story/round-trip", url="https://news.ycombinator.com/item?id=1"
+    )
+    _insert_score(conn, hn_entity, wilson_lower_bound=0.5, eligible=1)
+    conn.commit()
+
+    client = _client()
+    response = client.get("/?source=hn")
+    text = response.text
+
+    assert response.status_code == 200
+    velocity_link = _sort_link_html(text, "velocity")
+    assert "source=hn" in velocity_link
+    assert "source={{ source" not in text  # sanity: template rendered, not raw
+
+    match = re.search(
+        r'<a class="section-link[^"]*"\s+hx-get="/\?sort=[^"]*&section=&source=hn"',
+        text,
+    )
+    assert match, "sidebar All-section link did not carry source=hn"
+
+
 def test_dashboard_never_writes_to_the_database(db, pg_env):
     conn = db
     entity_id = _insert_entity(conn, "1", full_name="owner/read-only-check")
