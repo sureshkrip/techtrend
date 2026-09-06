@@ -14,6 +14,12 @@ function so `pytest --collect-only` succeeds cleanly at Wave 0.
 The `TECHTREND_DISABLE_LLM` tests below (quick task 260818-sbl) live in this
 same file since they exercise `techtrend.enrich.main()` -- the module under
 test throughout this file -- rather than the pipeline orchestration loop.
+
+Quick task 260906-n5d threaded `entities.source` + `entities.url` through
+`select_candidates` -> `run_enrichment` so grounding can dispatch per source
+instead of unconditionally hitting the GitHub REST API. Every fake grounding
+function below now takes `(source, full_name, url)` instead of a bare
+`full_name`.
 """
 
 from datetime import date
@@ -23,27 +29,29 @@ import pytest
 from techtrend.pipeline.score import CURRENT_SCORE_VERSION
 
 
-def _insert_entity(conn, native_id, *, full_name=None):
+def _insert_entity(conn, native_id, *, full_name=None, source="github", url=None):
     full_name = full_name or f"owner/{native_id}"
+    url = url if url is not None else f"https://github.com/{full_name}"
     conn.execute(
         """
         INSERT INTO entities (
             source, source_native_id, full_name, url, discovery_method,
             admitted_at, last_seen_at
         ) VALUES (
-            'github', %(native_id)s, %(full_name)s, %(url)s, 'seed',
+            %(source)s, %(native_id)s, %(full_name)s, %(url)s, 'seed',
             '2026-07-01T00:00:00Z', '2026-07-19T00:00:00Z'
         )
         """,
         {
+            "source": source,
             "native_id": native_id,
             "full_name": full_name,
-            "url": f"https://github.com/{full_name}",
+            "url": url,
         },
     )
     return conn.execute(
-        "SELECT id FROM entities WHERE source = 'github' AND source_native_id = %s",
-        (native_id,),
+        "SELECT id FROM entities WHERE source = %s AND source_native_id = %s",
+        (source, native_id),
     ).fetchone()["id"]
 
 
@@ -86,6 +94,10 @@ def test_gate_reads_eligible_seam(db):
 
     full_names = {row["full_name"] for row in candidates}
     assert full_names == {"owner/eligible-repo"}
+    # source/url are now selected alongside full_name (260906-n5d) so
+    # run_enrichment can dispatch grounding per source.
+    assert candidates[0]["source"] == "github"
+    assert candidates[0]["url"] == "https://github.com/owner/eligible-repo"
 
 
 # --- ENR-02/D-05: hard per-run cap, velocity-first, applied to the candidate SET ---
@@ -150,7 +162,7 @@ def test_cache_hit_skips_llm_call(db):
 
     llm_calls = []
 
-    def fake_fetch_grounding(full_name):
+    def fake_fetch_grounding(source, full_name, url):
         return "same description", "same readme intro"
 
     def fake_content_hash(description, readme_intro):
@@ -187,7 +199,7 @@ def test_fetch_failure_skips_llm(db):
 
     llm_calls = []
 
-    def fake_fetch_grounding(full_name):
+    def fake_fetch_grounding(source, full_name, url):
         return None, None  # both description and README unavailable
 
     def fake_llm_call(**kwargs):
@@ -228,7 +240,7 @@ def test_per_candidate_failure_does_not_abort_run(db):
     _insert_score(conn, healthy, wilson_lower_bound=0.5, eligible=1)
     conn.commit()
 
-    def fake_fetch_grounding(full_name):
+    def fake_fetch_grounding(source, full_name, url):
         return full_name, full_name
 
     def fake_content_hash(description, readme_intro):
@@ -266,6 +278,130 @@ def test_per_candidate_failure_does_not_abort_run(db):
     ).fetchone()
     assert healthy_row is not None
     assert healthy_row["status"] == "complete"
+
+
+# --- 260906-n5d: source-agnostic orchestration across all five sources ---
+
+
+def test_multi_source_orchestration_enriches_every_source(db):
+    """Proves the (source, full_name, url) threading end-to-end: one
+    eligible entity per real source gets a 'complete' row with a non-null
+    section, and one entity whose grounding genuinely fails gets an honest
+    'fetch_failed' tombstone (content_hash NULL) -- never fabricated. The
+    real per-source FETCH logic itself is covered by tests/test_grounding.py;
+    this test only proves run_enrichment dispatches the right (source, url)
+    to the injected fetch_grounding_fn and writes the right row per outcome.
+    """
+    from techtrend.config import load_config
+    from techtrend.pipeline.enrich import run_enrichment
+    from techtrend.pipeline.llm import Confidence, EnrichmentResult
+
+    conn = db
+    github_id = _insert_entity(
+        conn, "gh-1", full_name="owner/repo", source="github",
+        url="https://github.com/owner/repo",
+    )
+    hn_id = _insert_entity(
+        conn, "hn-1", full_name="Show HN: A New Tool", source="hn",
+        url="https://news.ycombinator.com/item?id=1",
+    )
+    npm_id = _insert_entity(
+        conn, "npm-1", full_name="some-pkg", source="npm",
+        url="https://www.npmjs.com/package/some-pkg",
+    )
+    pypi_id = _insert_entity(
+        conn, "pypi-1", full_name="some-pkg", source="pypi",
+        url="https://pypi.org/project/some-pkg/",
+    )
+    changelog_id = _insert_entity(
+        conn, "cl-1", full_name="ExampleVendor", source="changelog",
+        url="https://example.com/changelog",
+    )
+    empty_id = _insert_entity(
+        conn, "empty-1", full_name="nothing-to-ground-on", source="hn",
+        url="https://news.ycombinator.com/item?id=2",
+    )
+    for entity_id, wlb in (
+        (github_id, 0.9), (hn_id, 0.8), (npm_id, 0.7),
+        (pypi_id, 0.6), (changelog_id, 0.5), (empty_id, 0.4),
+    ):
+        _insert_score(conn, entity_id, wilson_lower_bound=wlb, eligible=1)
+    conn.commit()
+
+    real_text = {
+        "github": ("github description", "github readme intro"),
+        "hn": ("hn story title", ""),
+        "npm": ("npm package description", "npm readme intro"),
+        "pypi": ("pypi summary", "pypi description intro"),
+        "changelog": ("changelog feed title", "changelog entry titles"),
+    }
+    received_args: list[tuple[str, str, str]] = []
+
+    def fake_fetch_grounding(source, full_name, url):
+        received_args.append((source, full_name, url))
+        if full_name == "nothing-to-ground-on":
+            return None, None
+        return real_text[source]
+
+    def fake_content_hash(description, readme_intro):
+        return description  # distinct per candidate -- good enough as a fake hash
+
+    def fake_llm_call(**kwargs):
+        return EnrichmentResult(
+            summary_line_1="what it is",
+            summary_line_2="why it matters",
+            section="agentic_coding_tools",
+            confidence=Confidence.high,
+        )
+
+    config = load_config()
+    written = run_enrichment(
+        conn,
+        config,
+        date(2026, 7, 19),
+        fetch_grounding_fn=fake_fetch_grounding,
+        content_hash_fn=fake_content_hash,
+        llm_call_fn=fake_llm_call,
+    )
+
+    assert written == 5
+
+    for entity_id in (github_id, hn_id, npm_id, pypi_id, changelog_id):
+        row = conn.execute(
+            "SELECT status, section, content_hash FROM enrichments WHERE entity_id = %s",
+            (entity_id,),
+        ).fetchone()
+        assert row is not None
+        assert row["status"] == "complete"
+        assert row["section"] is not None
+        assert row["content_hash"] is not None
+
+    empty_row = conn.execute(
+        "SELECT status, content_hash FROM enrichments WHERE entity_id = %s",
+        (empty_id,),
+    ).fetchone()
+    assert empty_row is not None
+    assert empty_row["status"] == "fetch_failed"
+    assert empty_row["content_hash"] is None
+
+    # Proves the threading: fetch_grounding_fn received the correct
+    # (source, full_name, url) triple for every candidate.
+    assert ("github", "owner/repo", "https://github.com/owner/repo") in received_args
+    assert (
+        "hn", "Show HN: A New Tool", "https://news.ycombinator.com/item?id=1"
+    ) in received_args
+    assert (
+        "npm", "some-pkg", "https://www.npmjs.com/package/some-pkg"
+    ) in received_args
+    assert (
+        "pypi", "some-pkg", "https://pypi.org/project/some-pkg/"
+    ) in received_args
+    assert (
+        "changelog", "ExampleVendor", "https://example.com/changelog"
+    ) in received_args
+    assert (
+        "hn", "nothing-to-ground-on", "https://news.ycombinator.com/item?id=2"
+    ) in received_args
 
 
 # --- TECHTREND_DISABLE_LLM: runtime kill-switch (quick task 260818-sbl) ---

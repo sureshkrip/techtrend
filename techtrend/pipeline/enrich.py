@@ -20,13 +20,21 @@ step is wrapped in a try/except mirroring
 `pipeline/orchestrator.py::run_collection`'s per-collector isolation: one
 dead candidate is logged and skipped, never aborts the run, and never drops
 the entity's ranked `scores` row (ENR-06/D-10).
+
+`(entities.source, entities.url)` are threaded through the candidate rows
+(260906-n5d) so grounding dispatches per source instead of unconditionally
+hitting the GitHub REST API -- the pre-fix behavior 404d on every non-GitHub
+`full_name` (a headline/package name/feed label, not an owner/repo path) and
+silently dropped the candidate, so HN/npm/PyPI/changelog items never got a
+summary or section. Selection (`select_candidates`) stays source-agnostic;
+only the FETCH is source-aware now.
 """
 
 import hashlib
 import logging
 from datetime import UTC, date, datetime
 
-from techtrend.collectors.http import build_client
+from techtrend.collectors.http import build_client, build_public_client
 from techtrend.pipeline.grounding import fetch_grounding, normalize_for_hash
 from techtrend.pipeline.llm import build_llm_client, enrich_item
 from techtrend.pipeline.score import CURRENT_SCORE_VERSION
@@ -36,10 +44,15 @@ logger = logging.getLogger(__name__)
 # Mirrors query_ranked's eligible-set WHERE clause (server/queries.py lines
 # 45-73) exactly, plus the hard cap applied to the candidate SET (ENR-02/D-05):
 # entities.id ASC is the deterministic tie-break when wilson_lower_bound ties.
+# entities.source/entities.url (260906-n5d) let run_enrichment dispatch
+# grounding per source -- selection itself stays source-agnostic, only the
+# SELECT column list grew.
 _SELECT_CANDIDATES_SQL = """
     SELECT
         entities.id AS entity_id,
         entities.full_name,
+        entities.source,
+        entities.url,
         scores.wilson_lower_bound
     FROM entities
     JOIN scores ON scores.entity_id = entities.id
@@ -148,12 +161,18 @@ def run_enrichment(
     the LLM on a cache hit or an empty/unfetchable fetch, and write a
     'complete' row or an honest 'fetch_failed' tombstone per candidate.
 
-    `fetch_grounding_fn(full_name) -> (description, readme_intro)`,
+    `fetch_grounding_fn(source, full_name, url) -> (description, readme_intro)`,
     `content_hash_fn(description, readme_intro) -> content_hash`, and
     `llm_call_fn(**kwargs) -> EnrichmentResult | None` are injectable seams
-    -- tests supply fakes with no live GitHub/Anthropic call; production
-    callers omit them and get one real grounding client and one real LLM
-    client built up front for the whole run (never per candidate).
+    -- tests supply fakes with no live GitHub/Anthropic/npm/pypi call;
+    production callers omit them and get one real authenticated GitHub
+    client, one real unauthenticated public client (npm/pypi), and one real
+    LLM client built up front for the whole run (never per candidate). The
+    production `fetch_grounding_fn` dispatches to `grounding.fetch_grounding`
+    per candidate's `source` (260906-n5d) -- GitHub is routed through the
+    unchanged `_fetch_github_grounding` path; HN grounds on the stored title
+    with no fetch; npm/pypi fetch first-party registry text via the public
+    client; changelog re-parses the feed.
 
     Any per-candidate exception (fetch error, LLM error, refusal -> None) is
     caught, logged, and the loop continues -- one dead candidate never
@@ -172,11 +191,23 @@ def run_enrichment(
         return 0
 
     if fetch_grounding_fn is None:
-        grounding_client = build_client()
+        # Both clients are built once per run, never per candidate -- this
+        # block only runs when the candidate set is non-empty (see the
+        # zero-candidate early return above), so a zero-candidate run still
+        # needs no GITHUB_TOKEN. build_public_client() needs no token at all.
+        github_client = build_client()
+        public_client = build_public_client()
         grounding_char_cap = tunables.grounding_char_cap
 
-        def fetch_grounding_fn(full_name):
-            result = fetch_grounding(grounding_client, full_name, char_cap=grounding_char_cap)
+        def fetch_grounding_fn(source, full_name, url):
+            result = fetch_grounding(
+                source,
+                full_name,
+                url,
+                grounding_char_cap,
+                github_client=github_client,
+                public_client=public_client,
+            )
             if result is None:
                 return None, None
             return result
@@ -219,8 +250,10 @@ def run_enrichment(
     for row in candidates:
         entity_id = row["entity_id"]
         full_name = row["full_name"]
+        source = row["source"]
+        url = row["url"]
         try:
-            description, readme_intro = fetch_grounding_fn(full_name)
+            description, readme_intro = fetch_grounding_fn(source, full_name, url)
             if description is None and readme_intro is None:
                 _write_tombstone(conn, entity_id)
                 conn.commit()
@@ -246,9 +279,10 @@ def run_enrichment(
             written += 1
         except Exception as exc:  # noqa: BLE001 - one dead candidate never aborts the run (D-10)
             logger.warning(
-                "entity_id=%s full_name=%s status=failed error=%s "
+                "entity_id=%s source=%s full_name=%s status=failed error=%s "
                 "note=candidate skipped, run continues",
                 entity_id,
+                source,
                 full_name,
                 str(exc),
             )
