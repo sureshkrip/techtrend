@@ -3,10 +3,11 @@
    htmx sort/section request -- it stays visible while the table content
    updates underneath it.
 
-   Every link carries BOTH the current `sort` AND its own `section` value,
-   reusing the exact hx-target/hx-swap/hx-push-url/hx-indicator attribute
-   set already proven on table.html's sort headers (Pitfall #5) -- clicking
-   a section must never silently reset the active sort. `hx-push-url="true"`
+   Every link carries the current `sort` AND its own `section` value AND the
+   current `source` value, reusing the exact hx-target/hx-swap/hx-push-url/
+   hx-indicator attribute set already proven on table.html's sort headers
+   (Pitfall #5) -- clicking a section must never silently reset the active
+   sort or the active source tab (quick task 260906-nqc). `hx-push-url="true"`
    keeps the address bar (and therefore a page refresh or browser
    back/forward) authoritative for which section link should render active.
 
@@ -15,16 +16,18 @@
    the same eligible/current-version/MAX(run_date) seam as query_ranked so
    the counts shown here never drift from what the table actually renders.
    An unenriched item contributes to no section's count (D-13) -- it is
-   only ever visible under "All". #}
+   only ever visible under "All". Counts are deliberately source-independent
+   (they already ignore the section filter too) -- they never shift as the
+   source tab changes. #}
 <nav class="section-nav">
     <a class="section-link{{ ' section-active' if not section else '' }}"
-       hx-get="/?sort={{ sort }}&section=" hx-target="#table-body"
+       hx-get="/?sort={{ sort }}&section=&source={{ source or '' }}" hx-target="#table-body"
        hx-swap="innerHTML" hx-push-url="true" hx-indicator="#table-body">
         <span class="section-label">All</span>
     </a>
     {% for s in sections %}
     <a class="section-link{{ ' section-active' if section == s.id else '' }}"
-       hx-get="/?sort={{ sort }}&section={{ s.id }}" hx-target="#table-body"
+       hx-get="/?sort={{ sort }}&section={{ s.id }}&source={{ source or '' }}" hx-target="#table-body"
        hx-swap="innerHTML" hx-push-url="true" hx-indicator="#table-body">
         <span class="section-label">{{ s.label }}</span><span class="section-count">{{ section_counts.get(s.id, 0) }}</span>
     </a>

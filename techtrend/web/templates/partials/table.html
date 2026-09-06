@@ -4,31 +4,32 @@
    the active-sort glyph is regenerated atomically with the rows and never
    desyncs from the data mid-swap (UI-SPEC E3 loading/error backstops).
 
-   Every sort-header link carries BOTH `sort` (its own column key) AND the
-   current `section` value, matching partials/sidebar.html's links carrying
-   BOTH the current `sort` and their own `section` -- neither control may
-   ever silently reset the other (DASH-02, Pitfall #5). #}
+   Every sort-header link carries `sort` (its own column key) AND the
+   current `section` value AND the current `source` value, matching
+   partials/sidebar.html's links carrying the current `sort` and their own
+   `section` plus the current `source` -- neither control may ever silently
+   reset another (DASH-02, Pitfall #5; quick task 260906-nqc). #}
 <tr class="table-header-row">
     <th class="col-rank"><span class="col-label">Rank</span></th>
     <th class="col-name">
         <a class="sort-link{{ ' sort-active' if sort == 'name' else '' }}"
-           hx-get="/?sort=name&section={{ section or '' }}" hx-target="#table-body" hx-swap="innerHTML"
+           hx-get="/?sort=name&section={{ section or '' }}&source={{ source or '' }}" hx-target="#table-body" hx-swap="innerHTML"
            hx-push-url="true" hx-indicator="#table-body">Item{% if sort == 'name' %}<span class="sort-glyph"> ▲</span>{% endif %}</a>
     </th>
     <th class="col-summary"><span class="col-label">Summary</span></th>
     <th class="col-velocity">
         <a class="sort-link{{ ' sort-active' if sort == 'velocity' else '' }}"
-           hx-get="/?sort=velocity&section={{ section or '' }}" hx-target="#table-body" hx-swap="innerHTML"
+           hx-get="/?sort=velocity&section={{ section or '' }}&source={{ source or '' }}" hx-target="#table-body" hx-swap="innerHTML"
            hx-push-url="true" hx-indicator="#table-body">Velocity{% if sort == 'velocity' %}<span class="sort-glyph"> ▼</span>{% endif %}</a>
     </th>
     <th class="col-gained">
         <a class="sort-link{{ ' sort-active' if sort == 'gained' else '' }}"
-           hx-get="/?sort=gained&section={{ section or '' }}" hx-target="#table-body" hx-swap="innerHTML"
+           hx-get="/?sort=gained&section={{ section or '' }}&source={{ source or '' }}" hx-target="#table-body" hx-swap="innerHTML"
            hx-push-url="true" hx-indicator="#table-body">Gained{% if sort == 'gained' %}<span class="sort-glyph"> ▼</span>{% endif %}</a>
     </th>
     <th class="col-stars">
         <a class="sort-link{{ ' sort-active' if sort == 'stars' else '' }}"
-           hx-get="/?sort=stars&section={{ section or '' }}" hx-target="#table-body" hx-swap="innerHTML"
+           hx-get="/?sort=stars&section={{ section or '' }}&source={{ source or '' }}" hx-target="#table-body" hx-swap="innerHTML"
            hx-push-url="true" hx-indicator="#table-body">Total{% if sort == 'stars' %}<span class="sort-glyph"> ▼</span>{% endif %}</a>
     </th>
     <th class="action-col"><span class="col-label">Links</span></th>
@@ -90,6 +91,17 @@
     <td colspan="7" class="empty-state">
         <h2>No items in this section yet</h2>
         <p>No enriched repos have been filed under this section yet. Check back after the next enrichment run, or view "All".</p>
+    </td>
+</tr>
+{% elif source %}
+{# quick task 260906-nqc empty: a source filter matching zero rows is
+   likewise neither "no run has completed yet" nor "still building
+   history" -- ranked rows do exist, just not from this source. Render an
+   honest, source-specific empty table instead. #}
+<tr>
+    <td colspan="7" class="empty-state">
+        <h2>No items from this source yet</h2>
+        <p>No ranked items from this source yet. Check back after the next collection run, or view "All".</p>
     </td>
 </tr>
 {% elif has_successful_run %}

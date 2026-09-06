@@ -1,0 +1,44 @@
+{# Horizontal top source-tab row (quick task 260906-nqc). Included in
+   dashboard.html OUTSIDE #table-body so it never gets swapped away by an
+   htmx sort/section/source request -- it stays visible while the table
+   content updates underneath it.
+
+   Every tab carries the current `sort` AND `section` AND its own `source`
+   key, reusing the exact hx-target/hx-swap/hx-push-url/hx-indicator
+   attribute set already proven on sidebar.html's section links (Pitfall
+   #5) -- clicking a source tab must never silently reset the active sort
+   or section. `hx-push-url="true"` keeps the address bar (and therefore a
+   page refresh or browser back/forward) authoritative for which tab
+   renders active on refresh/back/forward -- the in-page swap updates only
+   #table-body, exactly as the sidebar already behaves.
+
+   `source` is the currently-applied source key (or None/"" for "All"), as
+   returned by query_ranked's applied_source and threaded through app.py's
+   template context. #}
+<nav class="source-tabs">
+    <a class="source-tab{{ ' source-tab-active' if not source else '' }}"
+       hx-get="/?sort={{ sort }}&section={{ section or '' }}&source="
+       hx-target="#table-body" hx-swap="innerHTML" hx-push-url="true" hx-indicator="#table-body">
+        <span class="source-tab-label">All</span>
+    </a>
+    <a class="source-tab{{ ' source-tab-active' if source == 'github' else '' }}"
+       hx-get="/?sort={{ sort }}&section={{ section or '' }}&source=github"
+       hx-target="#table-body" hx-swap="innerHTML" hx-push-url="true" hx-indicator="#table-body">
+        <span class="source-tab-label">GitHub</span>
+    </a>
+    <a class="source-tab{{ ' source-tab-active' if source == 'hn' else '' }}"
+       hx-get="/?sort={{ sort }}&section={{ section or '' }}&source=hn"
+       hx-target="#table-body" hx-swap="innerHTML" hx-push-url="true" hx-indicator="#table-body">
+        <span class="source-tab-label">Hacker News</span>
+    </a>
+    <a class="source-tab{{ ' source-tab-active' if source == 'packages' else '' }}"
+       hx-get="/?sort={{ sort }}&section={{ section or '' }}&source=packages"
+       hx-target="#table-body" hx-swap="innerHTML" hx-push-url="true" hx-indicator="#table-body">
+        <span class="source-tab-label">Packages</span>
+    </a>
+    <a class="source-tab{{ ' source-tab-active' if source == 'changelog' else '' }}"
+       hx-get="/?sort={{ sort }}&section={{ section or '' }}&source=changelog"
+       hx-target="#table-body" hx-swap="innerHTML" hx-push-url="true" hx-indicator="#table-body">
+        <span class="source-tab-label">Changelogs</span>
+    </a>
+</nav>
