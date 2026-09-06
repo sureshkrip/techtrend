@@ -42,7 +42,12 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 @app.get("/", response_class=HTMLResponse)
-def dashboard(request: Request, sort: str = "velocity", section: str | None = None) -> HTMLResponse:
+def dashboard(
+    request: Request,
+    sort: str = "velocity",
+    section: str | None = None,
+    source: str | None = None,
+) -> HTMLResponse:
     """CR-03 fix: `load_config()` and `connect()` are both fallible (a
     malformed config/tracked.toml or a corrupted techtrend.db) and must
     degrade to `DB_UNREADABLE_MESSAGE`, never a raw framework traceback
@@ -54,10 +59,15 @@ def dashboard(request: Request, sort: str = "velocity", section: str | None = No
     `section` (DASH-02) threads straight through to `query_ranked` and never
     affects `query_section_counts`, which always reflects every section's
     full count regardless of the current filter.
+
+    `source` (quick task 260906-nqc) threads through to `query_ranked` the
+    same way `section` does, and -- like `section` -- never affects
+    `query_section_counts`.
     """
     db_error = None
     rows: list[dict] = []
     applied_sort = sort
+    applied_source = source
     partial_history_count = 0
     health = None
     has_successful_run = False
@@ -68,7 +78,9 @@ def dashboard(request: Request, sort: str = "velocity", section: str | None = No
     try:
         config = load_config()
         conn = connect()
-        rows, applied_sort = query_ranked(conn, sort=sort, section=section)
+        rows, applied_sort, applied_source = query_ranked(
+            conn, sort=sort, section=section, source=source
+        )
         section_counts = query_section_counts(conn)
         sections = config.sections
         partial_history_count = query_partial_history_count(conn, config.tunables.window_days)
@@ -94,6 +106,7 @@ def dashboard(request: Request, sort: str = "velocity", section: str | None = No
             "rows": rows,
             "sort": applied_sort,
             "section": section,
+            "source": applied_source,
             "section_counts": section_counts,
             "sections": sections,
             "partial_history_count": partial_history_count,

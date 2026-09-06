@@ -29,6 +29,12 @@ run_dates renders as two separate table rows instead of one.
 cap-overflow or fetch failure never removes an already-ranked row (ENR-06),
 and accepts an optional `section` filter for the sidebar (DASH-02/D-11) --
 bound as a SQL parameter, never interpolated.
+
+`query_ranked` also accepts an optional `source` filter for the top source
+tabs (quick task 260906-nqc). Like `sort`, the URL only ever carries an
+allow-list KEY (`SOURCE_KEYS`) -- the concrete `entities.source` value set
+that key maps to is looked up server-side and bound as a `sources` array
+parameter (`= ANY(%(sources)s)`), never interpolated as raw text.
 """
 
 import psycopg
@@ -46,6 +52,19 @@ SORT_KEYS: dict[str, str] = {
     "name": "entities.full_name ASC, entities.id ASC",
 }
 DEFAULT_SORT = "velocity"
+
+# Allowed `source` query-param values mapped to the concrete set of
+# `entities.source` values they cover. The source analogue of SORT_KEYS: the
+# URL only ever carries a fixed allow-list key, and the raw `entities.source`
+# values live only in this server-side table (never in the URL). "packages"
+# deliberately combines npm + pypi into one tab (quick task 260906-nqc
+# CONTEXT.md decision) rather than splitting them.
+SOURCE_KEYS: dict[str, list[str]] = {
+    "github": ["github"],
+    "hn": ["hn"],
+    "packages": ["npm", "pypi"],
+    "changelog": ["changelog"],
+}
 
 _QUERY_RANKED_SQL = """
     SELECT
@@ -94,15 +113,20 @@ _QUERY_RANKED_SQL = """
           WHERE latest.score_version = %(score_version)s
       )
       {section_filter}
+      {source_filter}
     ORDER BY {order_by}
 """
 
 
 def query_ranked(
-    conn: psycopg.Connection, sort: str = DEFAULT_SORT, section: str | None = None
-) -> tuple[list[dict], str]:
+    conn: psycopg.Connection,
+    sort: str = DEFAULT_SORT,
+    section: str | None = None,
+    source: str | None = None,
+) -> tuple[list[dict], str, str | None]:
     """Return every eligible, current-score-version entity, ordered by the
-    requested sort, plus the sort key actually applied.
+    requested sort, plus the sort key actually applied and the source key
+    actually applied.
 
     An unrecognized `sort` value falls back to `DEFAULT_SORT` rather than
     raising or reaching SQL unfiltered. The returned `applied_sort` reflects
@@ -122,16 +146,31 @@ def query_ranked(
     enforces for `sort` (T-01-06/T-01-29, T-02-14). An unenriched row (null
     section) never matches a specific section filter and only appears under
     the default `section=None` ("All") view (D-13).
+
+    `source`, when given, narrows to rows whose `entities.source` is in the
+    set `SOURCE_KEYS` maps that key to -- bound as a `sources` array
+    parameter (`= ANY(%(sources)s)`), never interpolated as raw text
+    (quick task 260906-nqc). An unrecognized/empty/None `source` falls back
+    to no source predicate ("All"), exactly mirroring `sort`'s fallback to
+    `DEFAULT_SORT`. `applied_source` is the normalized key actually used (or
+    None), mirroring `applied_sort`. `source` composes with `section` via
+    AND -- neither filter overrides the other.
     """
     applied_sort = sort if sort in SORT_KEYS else DEFAULT_SORT
     order_by = SORT_KEYS[applied_sort]
+    applied_source = source if source in SOURCE_KEYS else None
     section_filter = "AND enrichments.section = %(section)s" if section else ""
-    sql = _QUERY_RANKED_SQL.format(order_by=order_by, section_filter=section_filter)
+    source_filter = "AND entities.source = ANY(%(sources)s)" if applied_source else ""
+    sql = _QUERY_RANKED_SQL.format(
+        order_by=order_by, section_filter=section_filter, source_filter=source_filter
+    )
     params: dict[str, object] = {"score_version": CURRENT_SCORE_VERSION}
     if section:
         params["section"] = section
+    if applied_source:
+        params["sources"] = SOURCE_KEYS[applied_source]
     rows = conn.execute(sql, params).fetchall()
-    return rows, applied_sort
+    return rows, applied_sort, applied_source
 
 
 def query_section_counts(conn: psycopg.Connection) -> dict[str, int]:
@@ -142,6 +181,12 @@ def query_section_counts(conn: psycopg.Connection) -> dict[str, int]:
     Uses a JOIN (not LEFT JOIN) and excludes null sections -- an unenriched
     entity contributes to no section's count, matching D-13 (unenriched
     items only ever appear under "All").
+
+    Deliberately global across sources (quick task 260906-nqc): this query
+    takes no `source` argument and its counts never narrow when a source tab
+    is active, matching the existing precedent that these counts already
+    ignore the `section` filter too -- the sidebar's per-section totals stay
+    stable regardless of which top-level filter tab is selected.
     """
     rows = conn.execute(
         """
