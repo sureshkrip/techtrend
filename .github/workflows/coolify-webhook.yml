@@ -23,8 +23,8 @@ jobs:
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
         run: |
           if [ -z "$COOLIFY_WEBHOOK_URL" ]; then
-            echo "::error::Missing COOLIFY_WEBHOOK_URL secret in repository settings."
-            exit 1
+            echo "::notice::COOLIFY_WEBHOOK_URL secret is not configured; skipping webhook trigger."
+            exit 0
           fi
 
           AUTH_ARGS=()
