@@ -84,11 +84,16 @@ def score_entity(stars_gained: int, stars_total: int, floor: int) -> tuple[bool,
 
 
 def compute_window_gain(
-    conn, entity_id: int, window_days: int, metric_name: str = "stars"
+    conn,
+    entity_id: int,
+    window_days: int,
+    metric_name: str = "stars",
+    reference_date: date | None = None,
 ) -> WindowGain:
     """Reads every `metric_name` snapshot row for `entity_id`, trims to the
-    trailing `window_days` relative to that entity's own most recent
-    snapshot, and returns the gain across whatever range is actually
+    trailing `window_days` relative to `reference_date` (when provided by
+    `rescore_all`) or that entity's own most recent snapshot (fallback for
+    direct callers), and returns the gain across whatever range is actually
     available.
 
     `metric_name` defaults to 'stars' so every pre-Phase-3 caller (this
@@ -97,13 +102,8 @@ def compute_window_gain(
     via `normalize.primary_metric_for_source` and passes it explicitly
     (D3-5 touch #1).
 
-    Anchoring the trailing window on the entity's own latest snapshot
-    (rather than on wall-clock "now") is what keeps this function a pure
-    function of the `snapshots` table alone -- re-running it never depends
-    on when it happens to be invoked (SCORE-04 concurrency/purity).
-
     Returns zeros with `window_days_actual` of 0 when the entity has no
-    snapshot rows.
+    snapshot rows in the trailing window.
     """
     rows = conn.execute(
         """
@@ -117,10 +117,21 @@ def compute_window_gain(
     if not rows:
         return WindowGain(stars_gained=0, stars_total=0, window_days_actual=0)
 
-    latest_date = date.fromisoformat(rows[-1]["collected_at"])
-    window_start = latest_date - timedelta(days=max(window_days - 1, 0))
+    anchor_date = (
+        reference_date
+        if reference_date is not None
+        else date.fromisoformat(rows[-1]["collected_at"])
+    )
+    window_start = anchor_date - timedelta(days=max(window_days - 1, 0))
 
-    in_window = [r for r in rows if date.fromisoformat(r["collected_at"]) >= window_start]
+    in_window = [
+        r
+        for r in rows
+        if window_start <= date.fromisoformat(r["collected_at"]) <= anchor_date
+    ]
+    if not in_window:
+        return WindowGain(stars_gained=0, stars_total=0, window_days_actual=0)
+
     values = [r["metric_value"] for r in in_window]
 
     # WR-03 fix: gain is the window's LAST value minus its FIRST value (net
@@ -135,7 +146,8 @@ def compute_window_gain(
     stars_total = values[-1]
 
     earliest_in_window = date.fromisoformat(in_window[0]["collected_at"])
-    window_days_actual = (latest_date - earliest_in_window).days
+    latest_in_window = date.fromisoformat(in_window[-1]["collected_at"])
+    window_days_actual = (latest_in_window - earliest_in_window).days
 
     return WindowGain(
         stars_gained=stars_gained,
@@ -164,6 +176,7 @@ def rescore_all(conn, config, run_date) -> int:
     Returns the number of scores rows written.
     """
     run_date_str = run_date.isoformat() if hasattr(run_date, "isoformat") else str(run_date)
+    run_date_obj = date.fromisoformat(run_date_str)
     window_days = config.tunables.window_days
     floor = config.tunables.window_gain_floor
 
@@ -179,7 +192,13 @@ def rescore_all(conn, config, run_date) -> int:
     written = 0
     for entity in entities:
         metric_name = primary_metric_for_source(entity["source"])
-        gain = compute_window_gain(conn, entity["id"], window_days, metric_name=metric_name)
+        gain = compute_window_gain(
+            conn,
+            entity["id"],
+            window_days,
+            metric_name=metric_name,
+            reference_date=run_date_obj,
+        )
         momentum_gain, momentum_total = momentum_for_source(
             entity["source"], gain.stars_gained, gain.stars_total
         )

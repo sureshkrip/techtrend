@@ -48,7 +48,7 @@ def _select_backfill_candidates(conn) -> list[dict]:
     placeholders = ",".join("%s" for _ in _RETRY_STATUSES)
     rows = conn.execute(
         f"SELECT id, full_name, backfill_status FROM entities "
-        f"WHERE backfill_status IN ({placeholders})",
+        f"WHERE source = 'github' AND backfill_status IN ({placeholders})",
         _RETRY_STATUSES,
     ).fetchall()
     return [dict(row) for row in rows]
@@ -57,7 +57,7 @@ def _select_backfill_candidates(conn) -> list[dict]:
 def _count_skipped(conn) -> int:
     placeholders = ",".join("%s" for _ in _SKIPPED_STATUSES)
     row = conn.execute(
-        f"SELECT COUNT(*) AS n FROM entities WHERE backfill_status IN ({placeholders})",
+        f"SELECT COUNT(*) AS n FROM entities WHERE source = 'github' AND backfill_status IN ({placeholders})",
         _SKIPPED_STATUSES,
     ).fetchone()
     return row["n"]

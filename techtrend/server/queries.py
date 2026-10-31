@@ -86,15 +86,22 @@ _QUERY_RANKED_SQL = """
         enrichments.low_confidence,
         enrichments.status AS enrichment_status,
         (
-            -- Internal alias name is unchanged ('stars_total'), but it now
-            -- backs the dashboard's source-agnostic "Total" column (D3-5
-            -- touch #2) -- a non-GitHub entity has no 'stars' snapshot and
-            -- this subquery correctly returns NULL for it, which table.html
-            -- renders as an em-dash rather than a scorer/query error.
+            -- Internal alias name is unchanged ('stars_total'), backing the
+            -- dashboard's source-agnostic "Total" column (D3-5 touch #2).
+            -- Resolves each source's primary metric (stars/points/downloads/
+            -- releases) and degrades to NULL (rendered as an em-dash) when no
+            -- snapshot exists yet.
             SELECT snapshots.metric_value
             FROM snapshots
             WHERE snapshots.entity_id = entities.id
-              AND snapshots.metric_name = 'stars'
+              AND snapshots.metric_name = CASE entities.source
+                  WHEN 'github' THEN 'stars'
+                  WHEN 'hn' THEN 'points'
+                  WHEN 'npm' THEN 'downloads'
+                  WHEN 'pypi' THEN 'downloads'
+                  WHEN 'changelog' THEN 'releases'
+                  ELSE 'stars'
+              END
             ORDER BY snapshots.collected_at DESC
             LIMIT 1
         ) AS stars_total
