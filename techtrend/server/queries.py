@@ -62,6 +62,9 @@ DEFAULT_SORT = "velocity"
 SOURCE_KEYS: dict[str, list[str]] = {
     "github": ["github"],
     "hn": ["hn"],
+    "huggingface": ["huggingface"],
+    "reddit": ["reddit"],
+    "lobsters": ["lobsters"],
     "packages": ["npm", "pypi"],
     "changelog": ["changelog"],
 }
@@ -97,6 +100,9 @@ _QUERY_RANKED_SQL = """
               AND snapshots.metric_name = CASE entities.source
                   WHEN 'github' THEN 'stars'
                   WHEN 'hn' THEN 'points'
+                  WHEN 'huggingface' THEN 'likes'
+                  WHEN 'lobsters' THEN 'points'
+                  WHEN 'reddit' THEN 'points'
                   WHEN 'npm' THEN 'downloads'
                   WHEN 'pypi' THEN 'downloads'
                   WHEN 'changelog' THEN 'releases'

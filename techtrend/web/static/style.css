@@ -227,12 +227,30 @@ h2 {
 }
 
 .source-tabs .source-tab:nth-child(4).source-tab-active {
+    background: linear-gradient(135deg, #D97706, #F59E0B);
+    color: #FFFFFF;
+    box-shadow: 0 3px 10px rgba(217, 119, 6, 0.3);
+}
+
+.source-tabs .source-tab:nth-child(5).source-tab-active {
+    background: linear-gradient(135deg, #E11D48, #F43F5E);
+    color: #FFFFFF;
+    box-shadow: 0 3px 10px rgba(225, 29, 72, 0.3);
+}
+
+.source-tabs .source-tab:nth-child(6).source-tab-active {
+    background: linear-gradient(135deg, #991B1B, #DC2626);
+    color: #FFFFFF;
+    box-shadow: 0 3px 10px rgba(185, 28, 28, 0.3);
+}
+
+.source-tabs .source-tab:nth-child(7).source-tab-active {
     background: linear-gradient(135deg, #0D9488, #14B8A6);
     color: #FFFFFF;
     box-shadow: 0 3px 10px rgba(13, 148, 136, 0.3);
 }
 
-.source-tabs .source-tab:nth-child(5).source-tab-active {
+.source-tabs .source-tab:nth-child(8).source-tab-active {
     background: linear-gradient(135deg, #DB2777, #EC4899);
     color: #FFFFFF;
     box-shadow: 0 3px 10px rgba(219, 39, 119, 0.3);
@@ -321,6 +339,18 @@ tbody tr[data-source="pypi"] td:first-child {
 
 tbody tr[data-source="changelog"] td:first-child {
     border-left: 4px solid #EC4899;
+}
+
+tbody tr[data-source="huggingface"] td:first-child {
+    border-left: 4px solid #F59E0B;
+}
+
+tbody tr[data-source="reddit"] td:first-child {
+    border-left: 4px solid #F43F5E;
+}
+
+tbody tr[data-source="lobsters"] td:first-child {
+    border-left: 4px solid #B91C1B;
 }
 
 /* Column widths */
@@ -428,6 +458,36 @@ tr[data-source="changelog"] .action-col a {
 }
 tr[data-source="changelog"] .action-col a:hover {
     background-color: #DB2777;
+    color: #FFFFFF;
+}
+
+tr[data-source="huggingface"] .action-col a {
+    color: #B45309;
+    background-color: #FFFBEB;
+    border-color: #FDE68A;
+}
+tr[data-source="huggingface"] .action-col a:hover {
+    background-color: #D97706;
+    color: #FFFFFF;
+}
+
+tr[data-source="reddit"] .action-col a {
+    color: #BE123C;
+    background-color: #FFF1F2;
+    border-color: #FECDD3;
+}
+tr[data-source="reddit"] .action-col a:hover {
+    background-color: #E11D48;
+    color: #FFFFFF;
+}
+
+tr[data-source="lobsters"] .action-col a {
+    color: #991B1B;
+    background-color: #FEF2F2;
+    border-color: #FECACA;
+}
+tr[data-source="lobsters"] .action-col a:hover {
+    background-color: #B91C1C;
     color: #FFFFFF;
 }
 

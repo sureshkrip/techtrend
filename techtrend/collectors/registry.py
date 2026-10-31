@@ -17,7 +17,10 @@ from techtrend.collectors.base import Collector
 from techtrend.collectors.changelog import ChangelogCollector
 from techtrend.collectors.github import GitHubCollector
 from techtrend.collectors.hn import HNCollector
+from techtrend.collectors.huggingface import HuggingFaceCollector
+from techtrend.collectors.lobsters import LobstersCollector
 from techtrend.collectors.packages import NpmCollector, PyPiCollector
+from techtrend.collectors.reddit import RedditCollector
 
 COLLECTORS: list[Collector] = [
     GitHubCollector(),
@@ -25,4 +28,7 @@ COLLECTORS: list[Collector] = [
     NpmCollector(),
     PyPiCollector(),
     ChangelogCollector(),
+    HuggingFaceCollector(),
+    LobstersCollector(),
+    RedditCollector(),
 ]

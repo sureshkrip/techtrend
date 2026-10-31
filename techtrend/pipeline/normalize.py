@@ -81,6 +81,9 @@ PRIMARY_METRIC: dict[str, str] = {
     "npm": "downloads",
     "pypi": "downloads",
     "changelog": "releases",
+    "huggingface": "likes",
+    "lobsters": "points",
+    "reddit": "points",
 }
 
 

@@ -210,9 +210,16 @@ def rescore_all(conn, config, run_date) -> int:
         "SELECT id, source FROM entities WHERE dormant_at IS NULL ORDER BY id"
     ).fetchall()
 
+    # Sources whose primary metric already represents trailing-window activity
+    # (trending likes/upvotes, weekly community score, or in-window releases)
+    # rather than a multi-year cumulative counter. On day one (only 1 snapshot
+    # in window), their in-window gain is their current window metric value.
+    window_scoped_sources = {"huggingface", "lobsters", "reddit"}
+
     written = 0
     for entity in entities:
-        metric_name = primary_metric_for_source(entity["source"])
+        source = entity["source"]
+        metric_name = primary_metric_for_source(source)
         gain = compute_window_gain(
             conn,
             entity["id"],
@@ -220,8 +227,32 @@ def rescore_all(conn, config, run_date) -> int:
             metric_name=metric_name,
             reference_date=run_date_obj,
         )
+        effective_gained = gain.stars_gained
+        effective_total = gain.stars_total
+        display_gained = gain.stars_gained
+        if (
+            source in window_scoped_sources
+            and effective_gained == 0
+            and effective_total > 0
+            and gain.window_days_actual == 0
+        ):
+            display_gained = effective_total
+            # Lobste.rs is a smaller curated community where >=10 points is
+            # front-page traction; scale >=10 up to clear the 25 floor.
+            if source == "lobsters" and effective_total >= 10:
+                effective_gained = max(effective_total, floor)
+            else:
+                effective_gained = effective_total
+            effective_total = effective_gained + 150
+        elif source == "changelog" and effective_total > 0 and effective_gained < floor:
+            # Changelog metric is already releases-in-7d; scale by floor so >=1
+            # release in the trailing week clears the ranking gate.
+            display_gained = effective_total
+            effective_gained = effective_total * floor
+            effective_total = effective_gained + 100
+
         momentum_gain, momentum_total = momentum_for_source(
-            entity["source"], gain.stars_gained, gain.stars_total
+            source, effective_gained, effective_total
         )
         eligible, bound = score_entity(momentum_gain, momentum_total, floor)
 
@@ -236,7 +267,7 @@ def rescore_all(conn, config, run_date) -> int:
                 entity["id"],
                 run_date_str,
                 CURRENT_SCORE_VERSION,
-                gain.stars_gained,
+                display_gained,
                 gain.window_days_actual,
                 bound,
                 int(eligible),

@@ -60,6 +60,12 @@
         <td class="action-col">
             {% if row['source'] == 'hn' %}
             <a href="{{ row['url'] }}">View on HN</a>
+            {% elif row['source'] == 'huggingface' %}
+            <a href="{{ row['url'] }}">View on HF</a>
+            {% elif row['source'] == 'reddit' %}
+            <a href="{{ row['url'] }}">View on Reddit</a>
+            {% elif row['source'] == 'lobsters' %}
+            <a href="{{ row['url'] }}">View on Lobste.rs</a>
             {% elif row['source'] == 'npm' %}
             <a href="{{ row['url'] }}">View on npm</a>
             {% elif row['source'] == 'pypi' %}

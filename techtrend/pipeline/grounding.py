@@ -306,7 +306,7 @@ def fetch_grounding(
     """
     if source == "github":
         return _fetch_github_grounding(github_client, full_name, char_cap)
-    if source == "hn":
+    if source in ("hn", "huggingface", "lobsters", "reddit"):
         return _fetch_hn_grounding(full_name, char_cap)
     if source == "npm":
         return _fetch_npm_grounding(public_client, full_name, char_cap)

@@ -31,6 +31,21 @@
        hx-target="#table-body" hx-swap="innerHTML" hx-push-url="true" hx-indicator="#table-body">
         <span class="source-tab-label">Hacker News</span>
     </a>
+    <a class="source-tab{{ ' source-tab-active' if source == 'huggingface' else '' }}"
+       hx-get="/?sort={{ sort }}&section={{ section or '' }}&source=huggingface"
+       hx-target="#table-body" hx-swap="innerHTML" hx-push-url="true" hx-indicator="#table-body">
+        <span class="source-tab-label">Hugging Face</span>
+    </a>
+    <a class="source-tab{{ ' source-tab-active' if source == 'reddit' else '' }}"
+       hx-get="/?sort={{ sort }}&section={{ section or '' }}&source=reddit"
+       hx-target="#table-body" hx-swap="innerHTML" hx-push-url="true" hx-indicator="#table-body">
+        <span class="source-tab-label">Reddit</span>
+    </a>
+    <a class="source-tab{{ ' source-tab-active' if source == 'lobsters' else '' }}"
+       hx-get="/?sort={{ sort }}&section={{ section or '' }}&source=lobsters"
+       hx-target="#table-body" hx-swap="innerHTML" hx-push-url="true" hx-indicator="#table-body">
+        <span class="source-tab-label">Lobste.rs</span>
+    </a>
     <a class="source-tab{{ ' source-tab-active' if source == 'packages' else '' }}"
        hx-get="/?sort={{ sort }}&section={{ section or '' }}&source=packages"
        hx-target="#table-body" hx-swap="innerHTML" hx-push-url="true" hx-indicator="#table-body">
