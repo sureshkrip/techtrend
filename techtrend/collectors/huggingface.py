@@ -1,7 +1,7 @@
 """Hugging Face trending models, spaces, and daily papers collector.
 
 Queries the public, unauthenticated Hugging Face API:
-- `https://huggingface.co/api/trending?type=model&limit=25`
+- `https://huggingface.co/api/trending?type=model&limit=20`
 - `https://huggingface.co/api/trending?type=space&limit=15`
 - `https://huggingface.co/api/daily_papers?limit=20`
 
@@ -60,7 +60,7 @@ class HuggingFaceCollector:
         owns_client = self._client is None
         results: list[dict] = []
         try:
-            for repo_type, limit in (("model", 25), ("space", 15)):
+            for repo_type, limit in (("model", 20), ("space", 15)):
                 try:
                     items = _fetch_trending(client, repo_type, limit)
                     for entry in items:
