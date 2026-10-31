@@ -132,6 +132,24 @@ def compute_window_gain(
     if not in_window:
         return WindowGain(stars_gained=0, stars_total=0, window_days_actual=0)
 
+    # When a collector recovers from a multi-day outage, an entity collected on
+    # `anchor_date` has only 1 snapshot inside `[window_start, anchor_date]`
+    # even though earlier snapshots exist in `rows`. Prepend the most recent
+    # pre-window snapshot and prorate the net gain to `window_days` so the
+    # entity ranks on the recovery run rather than waiting another day.
+    prorate_to_window = False
+    if (
+        len(in_window) == 1
+        and len(rows) >= 2
+        and date.fromisoformat(in_window[-1]["collected_at"]) == anchor_date
+    ):
+        prev_candidates = [
+            r for r in rows if date.fromisoformat(r["collected_at"]) < window_start
+        ]
+        if prev_candidates:
+            in_window = [prev_candidates[-1], in_window[0]]
+            prorate_to_window = True
+
     values = [r["metric_value"] for r in in_window]
 
     # WR-03 fix: gain is the window's LAST value minus its FIRST value (net
@@ -148,6 +166,9 @@ def compute_window_gain(
     earliest_in_window = date.fromisoformat(in_window[0]["collected_at"])
     latest_in_window = date.fromisoformat(in_window[-1]["collected_at"])
     window_days_actual = (latest_in_window - earliest_in_window).days
+    if prorate_to_window and window_days_actual > window_days:
+        stars_gained = round(stars_gained * window_days / window_days_actual)
+        window_days_actual = window_days
 
     return WindowGain(
         stars_gained=stars_gained,

@@ -40,7 +40,7 @@
 </tr>
 {% elif rows %}
     {% for row in rows %}
-    <tr>
+    <tr data-source="{{ row['source'] }}">
         <td class="col-rank{% if loop.index <= 3 %} rank-top{% endif %}">{{ loop.index }}</td>
         <td class="repo-name" title="{{ row['full_name'] }}">{{ row['full_name'] }}</td>
         <td class="col-summary">

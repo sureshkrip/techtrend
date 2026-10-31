@@ -1,8 +1,4 @@
-/* TechTrend dashboard styles.
- * One hand-authored static file implementing the UI-SPEC token scale
- * (.planning/phases/01-foundation-first-signal-github-scored-and-visible/01-UI-SPEC.md).
- * No CSS framework, no preprocessor, no webfont fetch.
- */
+/* TechTrend dashboard styles — Colorful Modern Theme */
 
 :root {
     /* Spacing scale (4px rungs) */
@@ -12,16 +8,16 @@
     --space-lg: 24px;
     --space-xl: 32px;
 
-    /* Typography: exactly 4 sizes, exactly 2 weights (400 / 600) */
+    /* Typography */
     --font-body: 14px;
     --font-label: 13px;
     --font-heading: 20px;
     --font-display: 28px;
 
-    /* Color: 60/30/10 dominant/secondary/accent + two semantic escalation tiers */
+    /* Palette */
     --color-dominant: #FFFFFF;
-    --color-secondary: #F1F3F5;
-    --color-accent: #2563EB;
+    --color-secondary: #F1F5F9;
+    --color-accent: #4F46E5;
     --color-warning-fg: #92400E;
     --color-warning-bg: #FEF3C7;
     --color-critical-fg: #991B1B;
@@ -34,20 +30,28 @@
 
 body {
     margin: 0;
-    padding: var(--space-xl) var(--space-lg);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    padding: var(--space-lg) var(--space-xl);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
     font-size: var(--font-body);
     font-weight: 400;
     line-height: 1.5;
-    color: #1A1A1A;
-    background-color: var(--color-dominant);
+    color: #0F172A;
+    background: linear-gradient(135deg, #EEF2FF 0%, #F5F3FF 35%, #ECFEFF 70%, #FFF7ED 100%);
+    background-attachment: fixed;
 }
 
 h1 {
-    font-size: var(--font-heading);
-    font-weight: 600;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
     line-height: 1.2;
-    margin: 0 0 var(--space-lg) 0;
+    margin: 0 0 var(--space-md) 0;
+    padding: var(--space-md) var(--space-lg);
+    color: #FFFFFF;
+    background: linear-gradient(90deg, #4F46E5 0%, #7C3AED 45%, #DB2777 100%);
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(79, 70, 229, 0.22);
 }
 
 h2 {
@@ -55,41 +59,48 @@ h2 {
     font-weight: 600;
     line-height: 1.2;
     margin: 0 0 var(--space-sm) 0;
+    color: #1E1B4B;
 }
 
-/* Persistent escalating health strip (D-16, HEALTH-02). Always rendered
- * (see partials/health_strip.html) -- quiet grey in the normal tier, loud
- * in the stale/critical tiers using the two declared semantic color pairs. */
+/* Persistent escalating health strip (D-16, HEALTH-02) */
 .health-strip {
-    padding: var(--space-md);
+    padding: 12px var(--space-md);
     margin-bottom: var(--space-lg);
     font-weight: 600;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
 }
 
 .health-normal {
-    background-color: var(--color-secondary);
-    color: #1A1A1A;
+    background: linear-gradient(90deg, #ECFDF5 0%, #F0FDFA 100%);
+    color: #065F46;
+    border-left: 5px solid #10B981;
     font-size: var(--font-label);
     line-height: 1.4;
 }
 
+.health-normal::before {
+    content: "● ";
+    color: #10B981;
+}
+
 .health-stale {
-    background-color: var(--color-warning-bg);
+    background: linear-gradient(90deg, #FFFBEB 0%, #FEF3C7 100%);
     color: var(--color-warning-fg);
-    /* Display type size reserved for exactly this moment (UI-SPEC Typography) */
+    border-left: 5px solid #F59E0B;
     font-size: var(--font-display);
     line-height: 1.2;
 }
 
 .health-critical {
-    background-color: var(--color-critical-bg);
+    background: linear-gradient(90deg, #FEF2F2 0%, #FEE2E2 100%);
     color: var(--color-critical-fg);
+    border-left: 5px solid #EF4444;
     font-size: var(--font-display);
     line-height: 1.2;
 }
 
-/* Persistent left-nav section filter sidebar (DASH-02, D-11). Lives outside
- * #table-body so it never gets swapped by an htmx sort/section request. */
+/* Dashboard layout & colorful left section sidebar */
 .dashboard-layout {
     display: flex;
     align-items: flex-start;
@@ -97,38 +108,68 @@ h2 {
 }
 
 .section-nav {
-    flex: 0 0 200px;
+    flex: 0 0 230px;
     display: flex;
     flex-direction: column;
+    gap: 4px;
+    background: #FFFFFF;
+    padding: 10px;
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+    border: 1px solid #E2E8F0;
 }
 
 .section-link {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-sm) 12px;
-    color: #1A1A1A;
+    padding: 9px 12px;
+    color: #334155;
     text-decoration: none;
     font-size: var(--font-label);
-    font-weight: 400;
+    font-weight: 500;
     line-height: 1.4;
+    border-radius: 8px;
+    border-left: 4px solid transparent;
     cursor: pointer;
+    transition: all 120ms ease;
 }
 
+.section-nav .section-link:nth-child(1) { border-left-color: #6366F1; }
+.section-nav .section-link:nth-child(2) { border-left-color: #8B5CF6; }
+.section-nav .section-link:nth-child(3) { border-left-color: #EC4899; }
+.section-nav .section-link:nth-child(4) { border-left-color: #06B6D4; }
+.section-nav .section-link:nth-child(5) { border-left-color: #10B981; }
+.section-nav .section-link:nth-child(6) { border-left-color: #F59E0B; }
+.section-nav .section-link:nth-child(7) { border-left-color: #3B82F6; }
+.section-nav .section-link:nth-child(8) { border-left-color: #14B8A6; }
+
 .section-link:hover {
-    background-color: var(--color-secondary);
+    background-color: #F8FAFC;
+    color: #0F172A;
+    transform: translateX(2px);
 }
 
 .section-active {
-    background-color: var(--color-secondary);
-    color: var(--color-accent);
+    background: linear-gradient(90deg, #EEF2FF 0%, #F5F3FF 100%);
+    color: #4F46E5;
     font-weight: 600;
+    box-shadow: inset 0 0 0 1px #C7D2FE;
 }
 
 .section-count {
-    color: #6B7280;
-    font-weight: 400;
+    background-color: #EEF2FF;
+    color: #4F46E5;
+    font-weight: 600;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
     margin-left: var(--space-sm);
+}
+
+.section-active .section-count {
+    background-color: #4F46E5;
+    color: #FFFFFF;
 }
 
 .table-content {
@@ -136,43 +177,83 @@ h2 {
     min-width: 0;
 }
 
-/* Horizontal source filter tabs (quick task 260906-nqc). */
+/* Horizontal source filter tabs */
 .source-tabs {
     display: flex;
-    gap: var(--space-xs);
+    flex-wrap: wrap;
+    gap: 8px;
     margin-bottom: var(--space-md);
-    border-bottom: 1px solid var(--color-secondary);
+    padding: 6px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 12px;
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
 }
 
 .source-tab {
-    padding: var(--space-sm) var(--space-md);
-    color: #1A1A1A;
+    padding: 8px 16px;
+    color: #475569;
     text-decoration: none;
     font-size: var(--font-label);
-    font-weight: 400;
+    font-weight: 600;
     line-height: 1.4;
+    border-radius: 8px;
     cursor: pointer;
+    transition: all 140ms ease;
 }
 
 .source-tab:hover {
-    background-color: var(--color-secondary);
+    background-color: #F1F5F9;
+    color: #0F172A;
 }
 
-.source-tab-active {
-    background-color: var(--color-secondary);
-    color: var(--color-accent);
-    font-weight: 600;
+/* Distinct vibrant colors for each source tab when active */
+.source-tabs .source-tab:nth-child(1).source-tab-active {
+    background: linear-gradient(135deg, #4F46E5, #6366F1);
+    color: #FFFFFF;
+    box-shadow: 0 3px 10px rgba(79, 70, 229, 0.3);
 }
 
-/* Dense sortable table (D-14) */
+.source-tabs .source-tab:nth-child(2).source-tab-active {
+    background: linear-gradient(135deg, #6D28D9, #7C3AED);
+    color: #FFFFFF;
+    box-shadow: 0 3px 10px rgba(124, 58, 237, 0.3);
+}
+
+.source-tabs .source-tab:nth-child(3).source-tab-active {
+    background: linear-gradient(135deg, #EA580C, #F97316);
+    color: #FFFFFF;
+    box-shadow: 0 3px 10px rgba(234, 88, 12, 0.3);
+}
+
+.source-tabs .source-tab:nth-child(4).source-tab-active {
+    background: linear-gradient(135deg, #0D9488, #14B8A6);
+    color: #FFFFFF;
+    box-shadow: 0 3px 10px rgba(13, 148, 136, 0.3);
+}
+
+.source-tabs .source-tab:nth-child(5).source-tab-active {
+    background: linear-gradient(135deg, #DB2777, #EC4899);
+    color: #FFFFFF;
+    box-shadow: 0 3px 10px rgba(219, 39, 119, 0.3);
+}
+
+/* Dense sortable table */
 table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     table-layout: fixed;
+    background: #FFFFFF;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
+    border: 1px solid #E2E8F0;
 }
 
 .table-header-row {
-    background-color: var(--color-secondary);
+    background: linear-gradient(90deg, #1E1B4B 0%, #312E81 60%, #3730A3 100%);
+    color: #FFFFFF;
 }
 
 th {
@@ -180,61 +261,109 @@ th {
     font-size: var(--font-label);
     font-weight: 600;
     line-height: 1.4;
-    /* Table-cell exception: 8px vertical / 12px horizontal (sm + 4px), not the 16px default */
-    padding: var(--space-sm) 12px;
+    padding: 12px;
+    color: #E0E7FF;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
 }
 
 th a.sort-link {
-    color: var(--color-accent);
+    color: #38BDF8;
     text-decoration: none;
     cursor: pointer;
 }
 
+th a.sort-link.sort-active {
+    color: #FDE047;
+}
+
 th a.sort-link:hover {
     text-decoration: underline;
+    color: #7DD3FC;
 }
 
 .sort-glyph {
-    color: var(--color-accent);
+    color: #FDE047;
 }
 
 td {
-    padding: var(--space-sm) 12px;
-    border-bottom: 1px solid var(--color-secondary);
+    padding: 10px 12px;
+    border-bottom: 1px solid #F1F5F9;
     font-size: var(--font-body);
     font-weight: 400;
+    vertical-align: middle;
 }
 
 tbody tr:nth-child(even) {
-    background-color: var(--color-secondary);
+    background-color: #FAFBFD;
 }
 
-/* Fixed column widths shared between header (th) and body (td) cells so the
- * header row can never reflow independently of the data rows and desync
- * column alignment (UI-SPEC E3 overflow backstop). */
+tbody tr:hover td {
+    background-color: #EEF2FF;
+}
+
+/* Source-specific left accent bar on rows */
+tbody tr[data-source="github"] td:first-child {
+    border-left: 4px solid #7C3AED;
+}
+
+tbody tr[data-source="hn"] td:first-child {
+    border-left: 4px solid #F97316;
+}
+
+tbody tr[data-source="npm"] td:first-child {
+    border-left: 4px solid #EF4444;
+}
+
+tbody tr[data-source="pypi"] td:first-child {
+    border-left: 4px solid #3B82F6;
+}
+
+tbody tr[data-source="changelog"] td:first-child {
+    border-left: 4px solid #EC4899;
+}
+
+/* Column widths */
 .col-rank {
-    width: 56px;
+    width: 60px;
+    font-weight: 600;
+    color: #64748B;
 }
 
 .col-name,
 .repo-name {
-    width: 320px;
-    max-width: 320px;
+    width: 300px;
+    max-width: 300px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-weight: 600;
+    color: #1E293B;
 }
 
 .col-velocity {
-    width: 96px;
+    width: 100px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-weight: 600;
+    color: #0D9488;
 }
 
 .col-gained {
-    width: 120px;
+    width: 115px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-weight: 600;
+    color: #16A34A;
+}
+
+td.col-gained::before {
+    content: "+";
 }
 
 .col-stars {
-    width: 96px;
+    width: 110px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: #475569;
+    font-weight: 500;
 }
 
 .action-col {
@@ -243,89 +372,154 @@ tbody tr:nth-child(even) {
 }
 
 .action-col a {
-    color: var(--color-accent);
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #4F46E5;
+    background-color: #EEF2FF;
+    border: 1px solid #C7D2FE;
     text-decoration: none;
+    transition: all 120ms ease;
 }
 
 .action-col a:hover {
-    text-decoration: underline;
+    background-color: #4F46E5;
+    color: #FFFFFF;
+    text-decoration: none;
+}
+
+/* Per-source colorful action pills */
+tr[data-source="hn"] .action-col a {
+    color: #C2410C;
+    background-color: #FFF7ED;
+    border-color: #FED7AA;
+}
+tr[data-source="hn"] .action-col a:hover {
+    background-color: #EA580C;
+    color: #FFFFFF;
+}
+
+tr[data-source="npm"] .action-col a {
+    color: #B91C1C;
+    background-color: #FEF2F2;
+    border-color: #FECACA;
+}
+tr[data-source="npm"] .action-col a:hover {
+    background-color: #DC2626;
+    color: #FFFFFF;
+}
+
+tr[data-source="pypi"] .action-col a {
+    color: #1D4ED8;
+    background-color: #EFF6FF;
+    border-color: #BFDBFE;
+}
+tr[data-source="pypi"] .action-col a:hover {
+    background-color: #2563EB;
+    color: #FFFFFF;
+}
+
+tr[data-source="changelog"] .action-col a {
+    color: #BE185D;
+    background-color: #FDF2F8;
+    border-color: #FBCFE8;
+}
+tr[data-source="changelog"] .action-col a:hover {
+    background-color: #DB2777;
+    color: #FFFFFF;
 }
 
 .action-col a + a {
     margin-left: var(--space-xs);
+    color: #0F766E;
+    background-color: #F0FDFA;
+    border-color: #99F6E4;
+}
+
+.action-col a + a:hover {
+    background-color: #0D9488;
+    color: #FFFFFF;
 }
 
 .rank-top {
-    color: var(--color-accent);
-    font-weight: 600;
+    color: #D97706;
+    font-weight: 700;
 }
 
-/* Summary cell (ENR-06/D-10). Honest fallbacks for unenriched rows --
- * "summary pending" / "source unavailable" instead of a blank cell -- and a
- * spottable low-confidence flag (D-02) using the existing warning tokens. */
+/* Summary cell */
 .col-summary,
 .summary-line,
 .summary-fallback {
     font-size: var(--font-label);
-    line-height: 1.4;
+    line-height: 1.45;
 }
 
 .col-summary {
     white-space: normal;
+    color: #334155;
 }
 
 .summary-line {
     display: block;
 }
 
+.summary-line:first-child {
+    color: #0F172A;
+    font-weight: 500;
+}
+
 .summary-fallback {
-    color: #6B7280;
+    color: #94A3B8;
     font-style: italic;
 }
 
 .low-confidence-flag {
     display: inline-block;
     margin-top: var(--space-xs);
-    padding: 1px var(--space-xs);
+    padding: 1px 6px;
+    border-radius: 4px;
     background-color: var(--color-warning-bg);
     color: var(--color-warning-fg);
-    font-size: var(--font-label);
+    font-size: 11px;
     font-weight: 600;
     line-height: 1.4;
 }
 
 .footer-note-row td {
     border-bottom: none;
+    background: #F8FAFC;
 }
 
 .footer-note {
     font-size: var(--font-label);
     font-weight: 600;
-    color: #1A1A1A;
+    color: #475569;
     padding-top: var(--space-md);
 }
 
 .empty-state {
     padding: var(--space-xl) var(--space-lg);
+    text-align: center;
+    color: #475569;
 }
 
 .db-error {
     padding: var(--space-md);
     background-color: var(--color-critical-bg);
     color: var(--color-critical-fg);
+    border-radius: 8px;
 }
 
 code {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     background-color: var(--color-secondary);
-    padding: 2px var(--space-xs);
+    color: #4F46E5;
+    padding: 2px 6px;
+    border-radius: 4px;
 }
 
-/* Loading state (UI-SPEC E1 backstop): every sort-header link carries
- * hx-indicator="#table-body", which makes #table-body the element htmx
- * toggles the .htmx-request class on for the duration of an in-flight
- * swap. Dim to ~0.5 opacity instead of a spinner -- local SQLite reads at
- * this row count are expected well under 200ms. */
 #table-body.htmx-request {
     opacity: 0.5;
     transition: opacity 100ms ease-in-out;
