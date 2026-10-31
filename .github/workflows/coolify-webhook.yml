@@ -1,0 +1,39 @@
+name: Trigger Coolify Webhook
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: coolify-webhook-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trigger-webhook:
+    name: Call Coolify Webhook
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Coolify webhook
+        env:
+          COOLIFY_WEBHOOK_URL: ${{ secrets.COOLIFY_WEBHOOK_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          if [ -z "$COOLIFY_WEBHOOK_URL" ]; then
+            echo "::error::Missing COOLIFY_WEBHOOK_URL secret in repository settings."
+            exit 1
+          fi
+
+          AUTH_ARGS=()
+          if [ -n "$COOLIFY_TOKEN" ]; then
+            AUTH_ARGS=(-H "Authorization: Bearer ${COOLIFY_TOKEN}")
+          fi
+
+          curl --fail --silent --show-error --location \
+            --retry 3 --retry-delay 5 \
+            -X GET \
+            "${AUTH_ARGS[@]}" \
+            "$COOLIFY_WEBHOOK_URL"

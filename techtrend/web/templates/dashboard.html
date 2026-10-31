@@ -44,6 +44,42 @@
                     '<tr><td colspan="7" class="db-error">Sort request failed — check your connection and reload.</td></tr>';
             }
         });
+
+        function syncNavFromUrl() {
+            var params = new URLSearchParams(window.location.search);
+            var activeSort = params.get('sort') || 'velocity';
+            var activeSection = params.get('section') || '';
+            var activeSource = params.get('source') || '';
+
+            document.querySelectorAll('.source-tab').forEach(function (el) {
+                var href = el.getAttribute('hx-get') || '';
+                var linkParams = new URLSearchParams(href.split('?')[1] || '');
+                var tabSource = linkParams.get('source') || '';
+                el.classList.toggle('source-tab-active', tabSource === activeSource);
+                el.setAttribute(
+                    'hx-get',
+                    '/?sort=' + encodeURIComponent(activeSort) +
+                    '&section=' + encodeURIComponent(activeSection) +
+                    '&source=' + encodeURIComponent(tabSource)
+                );
+            });
+
+            document.querySelectorAll('.section-link').forEach(function (el) {
+                var href = el.getAttribute('hx-get') || '';
+                var linkParams = new URLSearchParams(href.split('?')[1] || '');
+                var linkSection = linkParams.get('section') || '';
+                el.classList.toggle('section-active', linkSection === activeSection);
+                el.setAttribute(
+                    'hx-get',
+                    '/?sort=' + encodeURIComponent(activeSort) +
+                    '&section=' + encodeURIComponent(linkSection) +
+                    '&source=' + encodeURIComponent(activeSource)
+                );
+            });
+        }
+
+        document.body.addEventListener('htmx:afterSettle', syncNavFromUrl);
+        window.addEventListener('popstate', syncNavFromUrl);
     </script>
 </body>
 </html>

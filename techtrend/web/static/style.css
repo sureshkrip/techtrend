@@ -112,6 +112,7 @@ h2 {
     font-size: var(--font-label);
     font-weight: 400;
     line-height: 1.4;
+    cursor: pointer;
 }
 
 .section-link:hover {
@@ -133,6 +134,34 @@ h2 {
 .table-content {
     flex: 1;
     min-width: 0;
+}
+
+/* Horizontal source filter tabs (quick task 260906-nqc). */
+.source-tabs {
+    display: flex;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-md);
+    border-bottom: 1px solid var(--color-secondary);
+}
+
+.source-tab {
+    padding: var(--space-sm) var(--space-md);
+    color: #1A1A1A;
+    text-decoration: none;
+    font-size: var(--font-label);
+    font-weight: 400;
+    line-height: 1.4;
+    cursor: pointer;
+}
+
+.source-tab:hover {
+    background-color: var(--color-secondary);
+}
+
+.source-tab-active {
+    background-color: var(--color-secondary);
+    color: var(--color-accent);
+    font-weight: 600;
 }
 
 /* Dense sortable table (D-14) */
@@ -158,6 +187,7 @@ th {
 th a.sort-link {
     color: var(--color-accent);
     text-decoration: none;
+    cursor: pointer;
 }
 
 th a.sort-link:hover {
